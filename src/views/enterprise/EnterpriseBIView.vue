@@ -238,6 +238,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import * as echarts from 'echarts'
 import AppLayout from '../../components/layout/AppLayout.vue'
 
 const router = useRouter()
@@ -328,9 +329,9 @@ const initCharts = () => {
 
 const initTrendChart = () => {
   const chartDom = document.getElementById('trend-chart')
-  if (!chartDom || !window.echarts) return
+  if (!chartDom || !echarts) return
 
-  const chart = window.echarts.init(chartDom)
+  const chart = echarts.init(chartDom)
 
   const dates = []
   const consumption = []
@@ -379,7 +380,7 @@ const initTrendChart = () => {
         smooth: true,
         data: consumption,
         areaStyle: {
-          color: new window.echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(99, 102, 241, 0.25)' },
             { offset: 1, color: 'rgba(99, 102, 241, 0.02)' }
           ])
@@ -404,9 +405,9 @@ const initTrendChart = () => {
 
 const initContentChart = () => {
   const chartDom = document.getElementById('content-chart')
-  if (!chartDom || !window.echarts) return
+  if (!chartDom || !echarts) return
 
-  const chart = window.echarts.init(chartDom)
+  const chart = echarts.init(chartDom)
 
   const option = {
     tooltip: { trigger: 'axis' },
@@ -454,9 +455,9 @@ const initContentChart = () => {
 
 const initModelChart = () => {
   const chartDom = document.getElementById('model-chart')
-  if (!chartDom || !window.echarts) return
+  if (!chartDom || !echarts) return
 
-  const chart = window.echarts.init(chartDom)
+  const chart = echarts.init(chartDom)
 
   const option = {
     tooltip: {
@@ -488,9 +489,9 @@ const initModelChart = () => {
 
 const initCostChart = () => {
   const chartDom = document.getElementById('cost-chart')
-  if (!chartDom || !window.echarts) return
+  if (!chartDom || !echarts) return
 
-  const chart = window.echarts.init(chartDom)
+  const chart = echarts.init(chartDom)
 
   const option = {
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
@@ -521,9 +522,9 @@ const initCostChart = () => {
 
 const initAccountPoolChart = () => {
   const chartDom = document.getElementById('account-pool-chart')
-  if (!chartDom || !window.echarts) return
+  if (!chartDom || !echarts) return
 
-  const chart = window.echarts.init(chartDom)
+  const chart = echarts.init(chartDom)
 
   const option = {
     tooltip: { trigger: 'item' },
