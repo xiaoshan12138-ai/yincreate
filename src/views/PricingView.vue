@@ -10,8 +10,8 @@
             <p class="banner-subtitle">影创点可用于支付会员、素材购买、增值服务等</p>
           </div>
           <div class="banner-illustration">
-            <div class="illustration-wallet">
-              <i data-lucide="wallet" style="width: 64px; height: 64px; color: #a5b4fc;"></i>
+              <div class="illustration-wallet">
+                <i data-lucide="wallet" style="width: 54px; height: 54px; color: #a5b4fc;"></i>
               <div class="coin coin-1">P</div>
               <div class="coin coin-2">P</div>
             </div>
@@ -251,26 +251,24 @@ onMounted(() => {
 <style scoped>
 .pricing-page {
   display: flex;
-  gap: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px;
-  align-items: flex-start;
+  gap: 20px;
+  width: 100%;
+  align-items: stretch;
 }
 
 .pricing-main {
-  flex: 1;
-  min-width: 0;
+  width: 920px;
+  flex-shrink: 0;
 }
 
 .recharge-banner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32px 40px;
+  padding: 28px 32px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   position: relative;
   overflow: hidden;
 }
@@ -291,10 +289,10 @@ onMounted(() => {
 }
 
 .banner-title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .banner-subtitle {
@@ -308,8 +306,8 @@ onMounted(() => {
 
 .illustration-wallet {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   border-radius: 20px;
@@ -354,8 +352,8 @@ onMounted(() => {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
-  padding: 28px;
-  margin-bottom: 20px;
+  padding: 24px;
+  margin-bottom: 16px;
 }
 
 .section-title {
@@ -367,13 +365,13 @@ onMounted(() => {
 
 .amount-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .amount-card {
-  padding: 20px;
+  padding: 16px;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   cursor: pointer;
@@ -406,10 +404,10 @@ onMounted(() => {
 }
 
 .amount-price {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   color: #111827;
-  margin: 8px 0 6px;
+  margin: 6px 0 4px;
 }
 
 .amount-price-label {
@@ -471,16 +469,16 @@ onMounted(() => {
 
 .payment-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 12px;
 }
 
 .payment-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 18px;
+  gap: 8px;
+  padding: 14px;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   cursor: pointer;
@@ -499,8 +497,8 @@ onMounted(() => {
 }
 
 .payment-icon {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -531,17 +529,17 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 28px;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  padding: 20px 24px;
+  background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .checkout-left {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
 }
 
 .checkout-item {
@@ -557,7 +555,7 @@ onMounted(() => {
 }
 
 .checkout-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #111827;
 }
@@ -577,7 +575,7 @@ onMounted(() => {
 }
 
 .checkout-final {
-  font-size: 28px !important;
+  font-size: 24px !important;
   font-weight: 800 !important;
   color: #ef4444 !important;
 }
@@ -610,8 +608,8 @@ onMounted(() => {
 }
 
 .pay-now-btn {
-  padding: 14px 40px;
-  font-size: 16px;
+  padding: 12px 32px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
@@ -635,13 +633,11 @@ onMounted(() => {
 }
 
 .pricing-sidebar {
-  width: 320px;
+  width: 400px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  position: sticky;
-  top: 20px;
 }
 
 .points-balance-card,
@@ -650,7 +646,7 @@ onMounted(() => {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 20px;
+  padding: 18px;
 }
 
 .points-title,
@@ -670,7 +666,7 @@ onMounted(() => {
 }
 
 .points-number {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
   color: #111827;
 }
