@@ -118,8 +118,8 @@
                     type="range"
                     min="0"
                     max="100"
-                    v-model.number="account.priceWeight"
-                    @input="onWeightChange(idx, 'priceWeight', $event.target.value)"
+                    :value="account.priceWeight"
+                    @input="onWeightChange(idx, 'priceWeight', $event)"
                     class="custom-range-slider"
                     :style="{ background: getSliderBackground(account.priceWeight, 'price') }"
                   >
@@ -133,8 +133,8 @@
                     type="range"
                     min="0"
                     max="100"
-                    v-model.number="account.speedWeight"
-                    @input="onWeightChange(idx, 'speedWeight', $event.target.value)"
+                    :value="account.speedWeight"
+                    @input="onWeightChange(idx, 'speedWeight', $event)"
                     class="custom-range-slider"
                     :style="{ background: getSliderBackground(account.speedWeight, 'speed') }"
                   >
@@ -148,8 +148,8 @@
                     type="range"
                     min="0"
                     max="100"
-                    v-model.number="account.qualityWeight"
-                    @input="onWeightChange(idx, 'qualityWeight', $event.target.value)"
+                    :value="account.qualityWeight"
+                    @input="onWeightChange(idx, 'qualityWeight', $event)"
                     class="custom-range-slider"
                     :style="{ background: getSliderBackground(account.qualityWeight, 'quality') }"
                   >
@@ -175,6 +175,16 @@
           </tbody>
         </table>
       </div>
+
+      <!-- 达到最大值提示弹窗 -->
+      <Teleport to="body">
+        <Transition name="alert-fade">
+          <div v-if="showMaxAlert" class="max-alert-toast">
+            <i data-lucide="alert-triangle" style="width: 18px; height: 18px; color: #f59e0b;"></i>
+            <span>已达到最大值（100%），无法继续增加！</span>
+          </div>
+        </Transition>
+      </Teleport>
     </div>
   </AppLayout>
 </template>
@@ -191,17 +201,17 @@ const activeTab = ref('智能路由')
 const searchQuery = ref('')
 
 const accounts = ref([
-  { id: '101', name: '超级管理员账号', department: '公司', status: 'active', user: '王开发', priceWeight: 40, speedWeight: 30, qualityWeight: 30 },
-  { id: '102', name: '公司账号', department: '公司', status: 'active', user: '赵老板', priceWeight: 35, speedWeight: 35, qualityWeight: 30 },
-  { id: '103', name: '漫剧部主账号', department: '漫剧部', status: 'active', user: '杜总', priceWeight: 20, speedWeight: 40, qualityWeight: 40 },
-  { id: '104', name: '漫剧部副账号', department: '漫剧部', status: 'active', user: '刘总', priceWeight: 33, speedWeight: 34, qualityWeight: 33 },
-  { id: '105', name: '电商部主账号', department: '电商部', status: 'active', user: '张经理', priceWeight: 45, speedWeight: 30, qualityWeight: 25 },
-  { id: '106', name: '电商部副账号', department: '电商部', status: 'active', user: '马经理', priceWeight: 50, speedWeight: 25, qualityWeight: 25 },
-  { id: '107', name: '漫剧1组主账号', department: '漫剧1组', status: 'active', user: '小关', priceWeight: 15, speedWeight: 20, qualityWeight: 65 },
-  { id: '108', name: '漫剧1组副账号', department: '漫剧1组', status: 'active', user: '小李', priceWeight: 30, speedWeight: 40, qualityWeight: 30 },
-  { id: '109', name: '漫剧2组主账号', department: '漫剧2组', status: 'active', user: '小谢', priceWeight: 25, speedWeight: 35, qualityWeight: 40 },
-  { id: '110', name: '漫剧2组副账号', department: '漫剧2组', status: 'inactive', user: '-', priceWeight: 50, speedWeight: 25, qualityWeight: 25 },
-  { id: '111', name: '电商1组账号', department: '电商1组', status: 'active', user: '小胡', priceWeight: 40, speedWeight: 35, qualityWeight: 25 }
+  { id: '101', name: '超级管理员账号', department: '公司', status: 'active', user: '王开发', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '102', name: '公司账号', department: '公司', status: 'active', user: '赵老板', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '103', name: '漫剧部主账号', department: '漫剧部', status: 'active', user: '杜总', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '104', name: '漫剧部副账号', department: '漫剧部', status: 'active', user: '刘总', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '105', name: '电商部主账号', department: '电商部', status: 'active', user: '张经理', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '106', name: '电商部副账号', department: '电商部', status: 'active', user: '马经理', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '107', name: '漫剧1组主账号', department: '漫剧1组', status: 'active', user: '小关', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '108', name: '漫剧1组副账号', department: '漫剧1组', status: 'active', user: '小李', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '109', name: '漫剧2组主账号', department: '漫剧2组', status: 'active', user: '小谢', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '110', name: '漫剧2组副账号', department: '漫剧2组', status: 'inactive', user: '-', priceWeight: 0, speedWeight: 0, qualityWeight: 0 },
+  { id: '111', name: '电商1组账号', department: '电商1组', status: 'active', user: '小胡', priceWeight: 0, speedWeight: 0, qualityWeight: 0 }
 ])
 
 const presetTemplates = [
@@ -222,30 +232,34 @@ const filteredAccounts = computed(() => {
   )
 })
 
-const onWeightChange = (accountIdx, field, value) => {
+const showMaxAlert = ref(false)
+const maxAlertTimer = ref(null)
+
+const onWeightChange = (accountIdx, field, event) => {
   const account = accounts.value[accountIdx]
-  const numVal = parseInt(value) || 0
+  const numVal = parseInt(event.target.value) || 0
 
   const fields = ['priceWeight', 'speedWeight', 'qualityWeight']
   const otherFields = fields.filter(f => f !== field)
 
-  const remaining = 100 - numVal
-  const oldOtherSum = otherFields.reduce((sum, f) => sum + account[f], 0)
+  const currentOtherSum = otherFields.reduce((sum, f) => sum + account[f], 0)
+  const maxAllowed = 100 - currentOtherSum
 
-  if (oldOtherSum === 0) {
-    const perOther = Math.floor(remaining / 2)
-    account[otherFields[0]] = perOther
-    account[otherFields[1]] = remaining - perOther
+  if (numVal > maxAllowed) {
+    account[field] = maxAllowed
+    event.target.value = maxAllowed
+    showMaxAlertMessage()
   } else {
-    otherFields.forEach((f, i) => {
-      const ratio = account[f] / oldOtherSum
-      account[f] = i === otherFields.length - 1
-        ? remaining - otherFields.slice(0, i).reduce((s, ff) => s + account[ff], 0)
-        : Math.round(remaining * ratio)
-    })
+    account[field] = numVal
   }
+}
 
-  account[field] = numVal
+const showMaxAlertMessage = () => {
+  showMaxAlert.value = true
+  if (maxAlertTimer.value) clearTimeout(maxAlertTimer.value)
+  maxAlertTimer.value = setTimeout(() => {
+    showMaxAlert.value = false
+  }, 2000)
 }
 
 const applyPresetToAll = (template) => {
@@ -269,9 +283,9 @@ const applyPresetToAccount = (accountIdx, presetId) => {
 
 const resetAllAccounts = () => {
   accounts.value.forEach(account => {
-    account.priceWeight = 34
-    account.speedWeight = 33
-    account.qualityWeight = 33
+    account.priceWeight = 0
+    account.speedWeight = 0
+    account.qualityWeight = 0
   })
 }
 
@@ -663,5 +677,50 @@ onMounted(() => {
 .preset-select:focus {
   border-color: var(--primary-color);
   outline: none;
+}
+
+.max-alert-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+  z-index: 10000;
+  animation: alert-slide-down 0.3s ease-out;
+}
+
+.max-alert-toast span {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+@keyframes alert-slide-down {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.alert-fade-enter-active,
+.alert-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.alert-fade-enter-from,
+.alert-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
 }
 </style>
