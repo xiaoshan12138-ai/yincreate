@@ -1,7 +1,8 @@
 <template>
   <AppLayout>
+    <!-- 首页主容器 -->
     <div class="home-page">
-      <!-- Hero 区域 -->
+      <!-- Hero 区域 - 主标题和CTA按钮 -->
       <section class="hero-section">
         <div class="hero-bg-decoration">
           <svg class="hero-floating-icons" width="180" height="180" viewBox="0 0 180 180" fill="none">
@@ -34,7 +35,7 @@
         </div>
       </section>
 
-      <!-- 快速开始 -->
+      <!-- 快速开始区域 - 功能入口卡片 -->
       <section class="quick-start-section">
         <div class="section-header">
           <h3 class="section-title">快速开始</h3>
@@ -65,7 +66,7 @@
         </div>
       </section>
 
-      <!-- 社区精选 -->
+      <!-- 社区精选 - 视频推荐列表 -->
       <section class="community-section">
         <div class="section-header">
           <h3 class="section-title">社区精选</h3>
@@ -113,7 +114,7 @@
         </div>
       </section>
 
-      <!-- 最近项目 -->
+      <!-- 最近项目 - 用户项目列表 -->
       <section class="recent-projects-section">
         <div class="section-header">
           <h3 class="section-title">最近项目</h3>
@@ -184,7 +185,7 @@ onMounted(() => {
 
 /* Hero Section - 超紧凑版 */
 .hero-section {
-  background: linear-gradient(135deg, #eef2ff 0%, #ede9fe 50%, #fce7f3 100%);
+  background: linear-gradient(135deg, #eef2ff 0%, #74aee1 50%, #0bacdd 100%);
   border-radius: 20px;
   padding: 20px 24px;
   position: relative;
@@ -219,7 +220,7 @@ onMounted(() => {
   right: 100px;
   width: 55px;
   height: 55px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #63cdf1 0%, #127ef1 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -292,7 +293,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 7px 18px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #5557d2 0%, #27a7ec 100%);
   color: white;
   border: none;
   border-radius: 18px;
@@ -470,18 +471,28 @@ onMounted(() => {
   color: #6b7280;
   background: transparent;
   border: none;
+  position: relative;
 }
 
 .tab-item:hover {
-  background: rgba(99, 102, 241, 0.06);
-  color: #111827;
+  color: #3b82f6;
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
+  color: #3b82f6;
   font-weight: 600;
-  box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 3px 10px rgba(99, 102, 241, 0.3);
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 2px;
 }
 
 /* Video Grid - 超紧凑版 */

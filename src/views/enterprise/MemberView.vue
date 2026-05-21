@@ -38,83 +38,76 @@
         </div>
       </div>
 
-      <!-- 搜索和操作栏 -->
+      <!-- 账号列表 -->
       <div class="search-action-bar">
-        <div class="search-wrap-member">
-          <i data-lucide="search" style="width: 16px; height: 16px; color: #9ca3af;"></i>
-          <input v-model="searchKeyword" type="text" placeholder="搜索账号ID、人员名称或部门..." class="search-input-member">
+        <div class="table-header-row">
+          <h3 class="table-title">账号列表（共 {{ filteredAccounts.length }} 个）</h3>
+          <div class="header-actions">
+            <div class="search-wrap-member">
+              <i data-lucide="search" style="width: 16px; height: 16px; color: #9ca3af;"></i>
+              <input v-model="searchKeyword" type="text" placeholder="搜索账号ID或使用人姓名..." class="search-input-member">
+            </div>
+            <select v-model="departmentFilter" class="filter-select-member">
+              <option>全部视频组</option>
+              <option>公司</option>
+              <option>漫剧部</option>
+              <option>电商部</option>
+              <option>漫剧1组</option>
+              <option>漫剧2组</option>
+              <option>电商1组</option>
+            </select>
+            <select v-model="statusFilter" class="filter-select-member">
+              <option>全部状态</option>
+              <option>正常</option>
+              <option>即将到期</option>
+              <option>已过期</option>
+            </select>
+            <button class="export-btn">
+              <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+              导出报表
+            </button>
+          </div>
         </div>
-        <div class="filter-group">
-          <select v-model="departmentFilter" class="filter-select-member">
-            <option>全部部门</option>
-            <option>公司</option>
-            <option>漫剧部</option>
-            <option>电商部</option>
-            <option>漫剧1组</option>
-            <option>漫剧2组</option>
-            <option>电商1组</option>
-          </select>
-          <select v-model="statusFilter" class="filter-select-member">
-            <option>全部状态</option>
-            <option>正常</option>
-            <option>即将到期</option>
-            <option>已过期</option>
-          </select>
-        </div>
-        <button class="add-account-btn" @click="openAddModal">
-          <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-          新增账号
-        </button>
-      </div>
 
-      <!-- 账号列表表格 -->
-      <div class="account-table-card">
+        <!-- 账号列表表格 -->
         <table class="account-table">
           <thead>
             <tr>
               <th>账号ID</th>
               <th>账号性质</th>
-              <th>所属部门</th>
-              <th>关联人员</th>
-              <th>配额(¥)</th>
-              <th>已用(¥)</th>
-              <th>剩余(¥)</th>
-              <th>使用率</th>
-              <th>状态</th>
+              <th>部门</th>
+              <th>人员ID</th>
+              <th>人员称呼</th>
+              <th>累计分配</th>
+              <th>累计使用</th>
+              <th>剩余额度</th>
+              <th>过期额度</th>
+              <th>视频</th>
+              <th>图片</th>
+              <th>文字</th>
+              <th>音频</th>
+              <th>数字人</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="account in pagedAccounts" :key="account.id">
               <td>{{ account.id }}</td>
-              <td>
-                <span :class="['nature-badge', getNatureClass(account.nature)]">{{ account.nature }}</span>
-              </td>
+              <td><span :class="['nature-badge', getNatureClass(account.nature)]">{{ account.nature }}</span></td>
               <td>{{ account.department }}</td>
+              <td>P{{ String(account.id).padStart(3, '0') }}</td>
               <td>{{ account.personName }}</td>
-              <td class="money-cell">¥{{ account.allocated.toLocaleString() }}</td>
-              <td class="money-cell">¥{{ account.used.toLocaleString() }}</td>
-              <td class="money-cell">¥{{ account.remaining.toLocaleString() }}</td>
-              <td>
-                <div class="usage-bar-container">
-                  <div class="usage-bar-bg">
-                    <div
-                      class="usage-bar-fill"
-                      :style="{ width: (account.used / account.allocated * 100) + '%' }"
-                      :class="getUsageClass(account.used / account.allocated * 100)"
-                    ></div>
-                  </div>
-                  <span class="usage-text">{{ (account.used / account.allocated * 100).toFixed(1) }}%</span>
-                </div>
-              </td>
-              <td>
-                <span :class="['status-badge', getStatusClass(account)]">{{ getStatusText(account) }}</span>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <button class="action-btn view-btn" @click="viewAccount(account)">详情</button>
-                  <button class="action-btn edit-btn">编辑</button>
-                </div>
+              <td class="money-cell">{{ account.allocated.toLocaleString() }}</td>
+              <td class="money-cell text-red">{{ account.used.toLocaleString() }}</td>
+              <td class="money-cell text-green">{{ account.remaining.toLocaleString() }}</td>
+              <td class="money-cell">0</td>
+              <td>{{ Math.floor(Math.random() * 30) + 5 }}</td>
+              <td>{{ Math.floor(Math.random() * 20) + 5 }}</td>
+              <td>{{ Math.floor(Math.random() * 60) + 10 }}</td>
+              <td>{{ Math.floor(Math.random() * 10) + 1 }}</td>
+              <td>{{ Math.floor(Math.random() * 5) }}</td>
+              <td class="action-buttons">
+                <button class="detail-btn" @click="viewAccount(account)">详情</button>
               </td>
             </tr>
           </tbody>
@@ -258,7 +251,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../../components/layout/AppLayout.vue'
 
@@ -363,6 +356,9 @@ const getStatusText = (account) => {
 const viewAccount = (account) => {
   selectedAccount.value = account
   showDetailModal.value = true
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
 }
 
 const showDetailModal = ref(false)
@@ -379,6 +375,9 @@ const addForm = ref({
 const openAddModal = () => {
   addForm.value = { nature: '普通', department: '公司', personName: '', allocated: '' }
   showAddModal.value = true
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
 }
 
 const closeAddModal = () => {
@@ -449,10 +448,21 @@ onMounted(() => {
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
-
-.ent-tab:hover { background: #f1f5f9; color: var(--text-primary); }
-.ent-tab.active { background: var(--primary-color); color: white; }
+.ent-tab:hover { color: #3b82f6; }
+.ent-tab.active { color: #3b82f6; }
+.ent-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
 
 .pool-status-card {
   background: white;
@@ -503,13 +513,30 @@ onMounted(() => {
 
 .search-action-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: 20px;
-  padding: 16px 20px;
+  padding: 24px;
   background: white;
   border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
+}
+
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.table-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -517,8 +544,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  max-width: 350px;
+  width: 240px;
   padding: 8px 14px;
   background: #f8fafc;
   border: 1.5px solid var(--border-light);
@@ -534,11 +560,6 @@ onMounted(() => {
   background: transparent;
 }
 
-.filter-group {
-  display: flex;
-  gap: 10px;
-}
-
 .filter-select-member {
   padding: 8px 14px;
   border: 1.5px solid var(--border-light);
@@ -549,33 +570,24 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.add-account-btn {
+.export-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
-  background: var(--primary-color);
-  color: white;
-  border: none;
+  padding: 8px 16px;
+  background: white;
+  border: 1.5px solid var(--border-light);
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
-.add-account-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.account-table-card {
-  background: white;
-  border: 1.5px solid var(--border-light);
-  border-radius: var(--radius-xl);
-  padding: 20px;
-  overflow-x: auto;
+.export-btn:hover {
+  background: #f8fafc;
 }
 
 .account-table {
@@ -615,6 +627,10 @@ onMounted(() => {
 
 .money-cell { font-weight: 600; font-variant-numeric: tabular-nums; }
 
+.text-red { color: #ef4444; }
+
+.text-green { color: #10b981; }
+
 .usage-bar-container {
   display: flex;
   align-items: center;
@@ -653,6 +669,20 @@ onMounted(() => {
 .status-expired { background: #fee2e2; color: #dc2626; }
 
 .action-buttons { display: flex; gap: 6px; }
+
+.detail-btn {
+  padding: 5px 14px;
+  background: #dbeafe;
+  color: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.detail-btn:hover { background: #bfdbfe; }
 
 .action-btn {
   padding: 5px 12px;
@@ -730,7 +760,7 @@ onMounted(() => {
   background: #fff;
   border-radius: 16px;
   width: 90%;
-  max-width: 700px;
+  max-width: 920px;
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);

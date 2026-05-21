@@ -1,12 +1,16 @@
 <template>
   <div class="app-layout">
+    <!-- 左侧导航栏 -->
     <Sidebar />
     <div class="main-wrapper">
+      <!-- 顶部导航栏 -->
       <TopNav :page-title="pageTitle" />
       <div class="content-wrapper">
+        <!-- 主内容区域 -->
         <main class="content-area">
           <slot />
         </main>
+        <!-- 右侧边栏（条件显示） -->
         <aside v-if="showRightSidebar" class="right-sidebar-container">
           <slot name="right-sidebar">
             <RightSidebar />
@@ -78,15 +82,13 @@ const showRightSidebar = computed(() => {
 .content-wrapper {
   flex: 1;
   display: flex;
-  overflow: hidden;
-  background: linear-gradient(135deg, #fafafa 0%, #f5f3ff 100%);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .content-area {
-  flex: 1;
-  overflow-y: auto;
+  flex: 7;
   padding: 12px 16px;
-  max-width: 1400px;
 }
 
 .content-area::-webkit-scrollbar {
@@ -107,13 +109,11 @@ const showRightSidebar = computed(() => {
 }
 
 .right-sidebar-container {
-  width: 270px;
+  flex: 2;
   min-width: 270px;
-  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   border-left: 1px solid rgba(243, 244, 246, 1);
-  overflow-y: auto;
   position: relative;
   z-index: 50;
 }

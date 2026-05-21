@@ -1,13 +1,12 @@
 <template>
   <AppLayout>
+    <!-- AI生成页面主容器 -->
     <div class="generate-page">
-      <div class="generate-header">
-        <h1 class="page-title-main">AI 内容生成</h1>
-        <p class="page-subtitle">输入描述，让AI为您创作精彩内容</p>
-      </div>
+      <!-- 页面头部 - 标题和副标题 -->
 
+      <!-- 三栏布局：控制面板 | 画布区域 | 历史记录 -->
       <div class="generate-layout">
-        <!-- 左侧控制面板 -->
+        <!-- 左侧控制面板 - 参数设置 -->
         <div class="control-panel">
           <!-- 生成类型选择 -->
           <div class="panel-section">
@@ -68,7 +67,36 @@
         </div>
 
         <!-- 中间画布区域 -->
+         
         <div class="canvas-area">
+          <!-- 画布 -->
+          <div class="canvas-container" ref="canvasContainer">
+            <div class="canvas-inner" :style="canvasTransformStyle">
+              <div v-if="generatedCards.length === 0 && !isGenerating" class="canvas-empty">
+                <i data-lucide="image" style="width: 64px; height: 64px; color: #d1d5db;"></i>
+                <p>在下方输入提示词开始创作</p>
+              </div>
+
+              <div
+                v-for="card in generatedCards"
+                :key="card.id"
+                class="generated-card"
+                :style="{ left: card.x + 'px', top: card.y + 'px' }"
+              >
+                <div class="card-placeholder">
+                  <i data-lucide="video" style="width: 32px; height: 32px;"></i>
+                  <p>{{ card.title }}</p>
+                </div>
+              </div>
+
+              <div v-if="isGenerating" class="generating-indicator">
+                <div class="spinner"></div>
+                <p>AI正在创作中...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 输入框 -->
           <div class="prompt-input-container">
             <textarea
               v-model="prompt"
@@ -95,36 +123,9 @@
               </div>
             </div>
           </div>
-
-          <!-- 画布 -->
-          <div class="canvas-container" ref="canvasContainer">
-            <div class="canvas-inner" :style="canvasTransformStyle">
-              <div v-if="generatedCards.length === 0 && !isGenerating" class="canvas-empty">
-                <i data-lucide="image" style="width: 64px; height: 64px; color: #d1d5db;"></i>
-                <p>在上方输入提示词开始创作</p>
-              </div>
-
-              <div
-                v-for="card in generatedCards"
-                :key="card.id"
-                class="generated-card"
-                :style="{ left: card.x + 'px', top: card.y + 'px' }"
-              >
-                <div class="card-placeholder">
-                  <i data-lucide="video" style="width: 32px; height: 32px;"></i>
-                  <p>{{ card.title }}</p>
-                </div>
-              </div>
-
-              <div v-if="isGenerating" class="generating-indicator">
-                <div class="spinner"></div>
-                <p>AI正在创作中...</p>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <!-- 右侧历史记录 -->
+        <!-- 右侧历史记录面板 -->
         <div class="history-panel">
           <h3 class="history-title">生成历史</h3>
           <div class="history-list">
@@ -231,51 +232,51 @@ onMounted(() => {
 
 <style scoped>
 .generate-page {
-  max-width: 1600px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
 .generate-header {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .page-title-main {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
   color: #111827;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .page-subtitle {
-  font-size: 16px;
+  font-size: 14px;
   color: #6b7280;
 }
 
 .generate-layout {
   display: grid;
-  grid-template-columns: 280px 1fr 260px;
+  grid-template-columns: 300px 1fr 280px;
   gap: 20px;
-  height: calc(100vh - 200px);
+  height: calc(100vh - 140px);
 }
 
 .control-panel,
 .history-panel {
   background: white;
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
   box-shadow: var(--shadow-sm);
   border: 1px solid rgba(229, 231, 235, 0.7);
 }
 
 .panel-section {
-  margin-bottom: 24px;
+  margin-bottom: 26px;
 }
 
 .section-label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .type-selector {
@@ -285,37 +286,51 @@ onMounted(() => {
 }
 
 .type-btn {
-  padding: 10px 14px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
-  background: white;
-  font-size: 13.5px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 14.5px;
   font-weight: 600;
-  color: #374151;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 10px;
+  position: relative;
+}
+
+.type-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  border-radius: 1px;
+  transition: all 0.2s ease;
 }
 
 .type-btn:hover {
-  border-color: #6366f1;
-  background: rgba(99, 102, 241, 0.03);
+  color: #3b82f6;
 }
 
 .type-btn.active {
-  border-color: #6366f1;
-  background: rgba(99, 102, 241, 0.08);
-  color: #4338ca;
+  color: #3b82f6;
+}
+
+.type-btn.active::after {
+  background: #3b82f6;
 }
 
 .model-select {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border: 1.5px solid #e5e7eb;
   border-radius: 10px;
-  font-size: 13.5px;
+  font-size: 14px;
   outline: none;
   cursor: pointer;
   background: #f9fafb;
@@ -332,10 +347,10 @@ onMounted(() => {
 
 .param-group > label {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .ratio-options,
@@ -347,38 +362,56 @@ onMounted(() => {
 
 .ratio-btn,
 .quality-btn {
-  padding: 7px 14px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
-  font-size: 12.5px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13.5px;
   font-weight: 600;
+  color: #6b7280;
   cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ratio-btn::after,
+.quality-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  border-radius: 1px;
   transition: all 0.2s ease;
 }
 
 .ratio-btn:hover,
 .quality-btn:hover {
-  border-color: #6366f1;
+  color: #3b82f6;
 }
 
 .ratio-btn.active,
 .quality-btn.active {
-  border-color: #6366f1;
-  background: rgba(99, 102, 241, 0.08);
-  color: #4338ca;
+  color: #3b82f6;
+}
+
+.ratio-btn.active::after,
+.quality-btn.active::after {
+  background: #3b82f6;
 }
 
 .canvas-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .prompt-input-container {
   background: white;
   border-radius: 16px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: var(--shadow-sm);
   border: 1px solid rgba(229, 231, 235, 0.7);
 }
@@ -387,7 +420,7 @@ onMounted(() => {
   width: 100%;
   border: none;
   resize: none;
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.6;
   outline: none;
   font-family: inherit;
@@ -419,11 +452,11 @@ onMounted(() => {
 }
 
 .upload-btn {
-  padding: 8px 16px;
+  padding: 10px 18px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 10px;
   background: white;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -439,18 +472,18 @@ onMounted(() => {
 }
 
 .generate-btn {
-  padding: 8px 24px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  padding: 10px 28px;
+  background: linear-gradient(135deg, #33d0e8 0%, #2954df 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 13.5px;
+  border-radius: 10px;
+  font-size: 14.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   box-shadow: var(--shadow-sm), 0 4px 12px rgba(99, 102, 241, 0.25);
 }
 
@@ -492,13 +525,13 @@ onMounted(() => {
 }
 
 .canvas-empty p {
-  margin-top: 12px;
-  font-size: 15px;
+  margin-top: 14px;
+  font-size: 16px;
 }
 
 .generated-card {
   position: absolute;
-  width: 280px;
+  width: 300px;
   background: white;
   border-radius: 14px;
   box-shadow: var(--shadow-md);
@@ -557,10 +590,10 @@ onMounted(() => {
 }
 
 .history-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .history-list {
@@ -570,19 +603,19 @@ onMounted(() => {
 
 .history-empty {
   text-align: center;
-  padding: 32px 16px;
+  padding: 36px 16px;
   color: #9ca3af;
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 
 .history-item {
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  padding: 14px;
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s ease;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .history-item:hover {
@@ -590,9 +623,9 @@ onMounted(() => {
 }
 
 .history-thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
+  width: 62px;
+  height: 62px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
   flex-shrink: 0;
 }
@@ -603,10 +636,10 @@ onMounted(() => {
 }
 
 .history-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #111827;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -619,7 +652,7 @@ onMounted(() => {
 
 @media (max-width: 1200px) {
   .generate-layout {
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 260px 1fr;
   }
 
   .history-panel {

@@ -1,24 +1,36 @@
 /* ============================================
    影创studio - AI视频创作平台
-   CSS 变量定义
+   CSS 变量定义（扩展版）
+   包含语义化颜色和更多自定义变量
    ============================================ */
 
 :root {
+    /* 主色调 */
     --primary-color: #6366f1;
     --primary-hover: #4f46e5;
     --secondary-color: #8b5cf6;
     --accent-blue: #3b82f6;
+
+    /* 背景色 */
     --bg-primary: #ffffff;
     --bg-secondary: #f9fafb;
     --bg-tertiary: #f3f4f6;
+
+    /* 文字颜色 */
     --text-primary: #111827;
     --text-secondary: #6b7280;
     --text-tertiary: #9ca3af;
+
+    /* 边框颜色 */
     --border-light: rgba(229, 231, 235, 0.7);
     --border-subtle: rgba(243, 244, 246, 1);
+
+    /* 阴影效果 */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
     --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.06);
     --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.08);
+
+    /* 圆角大小 */
     --radius-sm: 6px;
     --radius-md: 12px;
     --radius-lg: 16px;

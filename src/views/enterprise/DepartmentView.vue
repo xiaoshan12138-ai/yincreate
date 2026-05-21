@@ -55,25 +55,28 @@
         </div>
       </div>
 
-      <!-- 搜索和筛选 -->
-      <div class="search-filter-bar">
-        <div class="search-input-wrap">
-          <i data-lucide="search" style="width: 16px; height: 16px; color: #9ca3af;"></i>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="搜索部门名称、ID或账号..."
-            class="search-input-dept"
-          >
+      <!-- 部门列表 -->
+      <div class="search-action-bar">
+        <div class="table-header-row">
+          <h3 class="table-title">部门列表（共 {{ filteredDepartments.length }} 个）</h3>
+          <div class="header-actions">
+            <div class="search-wrap-member">
+              <i data-lucide="search" style="width: 16px; height: 16px; color: #9ca3af;"></i>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索部门名称、ID或账号..."
+                class="search-input-dept"
+              >
+            </div>
+            <button class="export-btn">
+              <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+              导出报表
+            </button>
+          </div>
         </div>
-        <button class="add-dept-btn">
-          <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-          新增部门
-        </button>
-      </div>
 
-      <!-- 部门列表表格 -->
-      <div class="dept-table-card">
+        <!-- 部门列表表格 -->
         <table class="dept-table">
           <thead>
             <tr>
@@ -207,7 +210,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../../components/layout/AppLayout.vue'
 
@@ -281,6 +284,9 @@ const getUsageClass = (percent) => {
 const viewDetail = (dept) => {
   selectedDept.value = dept
   showDetail.value = true
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
 }
 
 const showDetail = ref(false)
@@ -334,16 +340,27 @@ onMounted(() => {
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .ent-tab:hover {
-  background: #f1f5f9;
-  color: var(--text-primary);
+  color: #3b82f6;
 }
 
 .ent-tab.active {
-  background: var(--primary-color);
-  color: white;
+  color: #3b82f6;
+}
+
+.ent-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 2px;
 }
 
 .dept-stats-grid {
@@ -391,23 +408,40 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.search-filter-bar {
+.search-action-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: 20px;
-  padding: 16px 20px;
+  padding: 24px;
   background: white;
   border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 
-.search-input-wrap {
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.table-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-wrap-member {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  max-width: 400px;
+  width: 280px;
   padding: 8px 14px;
   background: #f8fafc;
   border: 1.5px solid var(--border-light);
@@ -423,32 +457,24 @@ onMounted(() => {
   background: transparent;
 }
 
-.add-dept-btn {
+.export-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
-  background: var(--primary-color);
-  color: white;
-  border: none;
+  padding: 8px 16px;
+  background: white;
+  border: 1.5px solid var(--border-light);
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.add-dept-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.dept-table-card {
-  background: white;
-  border: 1.5px solid var(--border-light);
-  border-radius: var(--radius-xl);
-  padding: 20px;
-  overflow-x: auto;
+.export-btn:hover {
+  background: #f8fafc;
 }
 
 .dept-table {
@@ -540,11 +566,11 @@ onMounted(() => {
 
 .view-btn {
   background: #eef2ff;
-  color: #6366f1;
+  color: #3b82f6
 }
 
 .view-btn:hover {
-  background: #ddd6fe;
+  background: #bfdbfe;
 }
 
 .edit-btn {
@@ -631,7 +657,7 @@ onMounted(() => {
   background: #fff;
   border-radius: 16px;
   width: 90%;
-  max-width: 700px;
+  max-width: 920px;
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);

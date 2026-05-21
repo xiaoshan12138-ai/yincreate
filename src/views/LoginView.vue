@@ -1,5 +1,7 @@
 <template>
+  <!-- 登录页面主容器 -->
   <div class="login-page">
+    <!-- 左侧品牌展示区域 -->
     <div class="login-brand">
       <div class="brand-bg-orb orb-1"></div>
       <div class="brand-bg-orb orb-2"></div>
@@ -35,6 +37,7 @@
       </div>
     </div>
 
+    <!-- 右侧登录表单区域 -->
     <div class="login-form-container">
       <form class="login-form" @submit.prevent="handleLogin">
         <h2 class="form-title">{{ isRegister ? '创建账号' : '欢迎回来' }}</h2>

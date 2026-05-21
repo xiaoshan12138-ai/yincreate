@@ -1,7 +1,8 @@
 <template>
   <AppLayout>
+    <!-- 社区页面主容器 -->
     <div class="community-page">
-      <!-- 标签页 + 操作按钮 -->
+      <!-- 顶部标签栏 + 操作按钮（发布、筛选） -->
       <div class="community-tab-header">
         <div class="tabs-nav">
           <button
@@ -26,7 +27,7 @@
         </div>
       </div>
 
-      <!-- 分类标签 -->
+      <!-- 分类标签行 - 内容类型筛选 -->
       <div class="category-tags-row">
         <button
           v-for="(cat, idx) in categories"
@@ -37,7 +38,7 @@
         </button>
       </div>
 
-      <!-- 精选横幅卡片 -->
+      <!-- 精选横幅卡片 - 热门榜单、新星榜等 -->
       <div class="banner-cards-row">
         <div
           v-for="(banner, idx) in banners"
@@ -51,7 +52,7 @@
         </div>
       </div>
 
-      <!-- 视频网格 -->
+      <!-- 视频网格 - 社区作品展示 -->
       <div class="video-grid-community">
         <div v-for="video in videos" :key="video.id" class="video-card-community">
           <div class="v-thumb-wrap">
@@ -231,17 +232,28 @@ onMounted(() => {
   color: #6b7280;
   cursor: pointer;
   transition: all 0.25s ease;
+  position: relative;
 }
 
 .comm-tab:hover {
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.06);
+  color: #3b82f6;
 }
 
 .comm-tab.active {
-  color: #6366f1;
+  color: #3b82f6;
   font-weight: 700;
-  background: rgba(99, 102, 241, 0.08);
+}
+
+.comm-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 2px;
 }
 
 .tab-actions {
@@ -255,7 +267,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 9px 20px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
   color: white;
   border: none;
   border-radius: 10px;
@@ -309,15 +321,15 @@ onMounted(() => {
 }
 
 .cat-tag:hover {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: #3b82f6;
+  color: #3b82f6;
 }
 
 .cat-tag.active {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: #3b82f6;
+  color: #3b82f6;
   font-weight: 600;
-  background: rgba(99, 102, 241, 0.04);
+  background: rgba(59, 130, 246, 0.04);
 }
 
 /* 横幅卡片 */
@@ -349,7 +361,7 @@ onMounted(() => {
 }
 
 .banner-purple {
-  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
 }
 
 .banner-dark {

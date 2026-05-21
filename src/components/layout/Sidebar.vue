@@ -1,5 +1,6 @@
 <template>
   <aside class="sidebar">
+    <!-- Logo区域 -->
     <div class="sidebar-logo">
       <div class="logo-icon">
         <i data-lucide="play" style="width: 22px; height: 22px;"></i>
@@ -10,6 +11,7 @@
       </div>
     </div>
 
+    <!-- 导航菜单 -->
     <nav class="nav-menu">
       <router-link
         v-for="item in navItems"
@@ -24,6 +26,7 @@
       </router-link>
     </nav>
 
+    <!-- 会员卡片 -->
     <div class="member-card">
       <div class="member-header">
         <i data-lucide="crown" class="crown-icon"></i>
@@ -32,6 +35,7 @@
       <p class="member-desc">解锁更多高级功能</p>
       <button class="upgrade-btn" @click="goToPricing">立即充值</button>
 
+      <!-- 存储空间信息 -->
       <div class="storage-info">
         <div class="storage-label">
           <span class="storage-text">存储空间</span>
@@ -118,7 +122,7 @@ onMounted(() => {
 .logo-icon {
   width: 34px;
   height: 34px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #2b7cff;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -159,17 +163,28 @@ onMounted(() => {
   font-weight: 500;
   transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .nav-item:hover {
-  background: rgba(99, 102, 241, 0.06);
-  color: #3730a3;
+  color: #3b82f6;
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
-  color: #4338ca;
+  color: #3b82f6;
   font-weight: 600;
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #3b82f6;
+  border-radius: 0 3px 3px 0;
 }
 
 .icon-wrapper {
@@ -184,7 +199,7 @@ onMounted(() => {
 }
 
 .nav-item.active .icon-wrapper {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+  color: #3b82f6;
 }
 
 .member-card {

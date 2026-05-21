@@ -1,4 +1,5 @@
 <template>
+  <!-- 占位页面 - 用于正在开发中的功能模块 -->
   <div class="placeholder-page">
     <div class="placeholder-icon">
       <i data-lucide="construction" style="width: 64px; height: 64px; color: #6366f1;"></i>

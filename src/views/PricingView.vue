@@ -1,9 +1,10 @@
 <template>
   <AppLayout>
+    <!-- 定价/充值页面主容器 -->
     <div class="pricing-page">
-      <!-- 左侧主内容区 -->
+      <!-- 左侧主内容区 - 充值流程 -->
       <div class="pricing-main">
-        <!-- 充值横幅 -->
+        <!-- 充值横幅 - 影创点介绍 -->
         <div class="recharge-banner">
           <div class="banner-text">
             <h2 class="banner-title">充值影创点</h2>
@@ -155,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import AppLayout from '../components/layout/AppLayout.vue'
 
 const activeTab = ref('影创点明细')
@@ -197,14 +198,23 @@ const securityItems = [
 function selectAmount(val) {
   selectedAmount.value = val
   customAmount.value = ''
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
 }
 
 function selectCustom() {
   selectedAmount.value = 0
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
 }
 
 function selectPayment(id) {
   selectedPayment.value = id
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
 }
 
 function getSelectedOption() {
@@ -266,7 +276,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 28px 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #9db3f9 0%, #74aee1 50%, #0bacdd 100%);
   border-radius: 16px;
   margin-bottom: 24px;
   position: relative;
@@ -386,7 +396,7 @@ onMounted(() => {
 }
 
 .amount-card.selected {
-  border-color: #6366f1;
+  border-color: #0b80e7;
   background: #eff6ff;
   box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
 }
@@ -459,7 +469,7 @@ onMounted(() => {
   right: 8px;
   width: 24px;
   height: 24px;
-  background: #6366f1;
+  background: #3b82f6;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -492,7 +502,7 @@ onMounted(() => {
 }
 
 .payment-card.selected {
-  border-color: #6366f1;
+  border-color: #0b80e7;
   background: #eff6ff;
 }
 
@@ -517,7 +527,7 @@ onMounted(() => {
   right: 8px;
   width: 24px;
   height: 24px;
-  background: #6366f1;
+  background: #3b82f6;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -612,7 +622,7 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #4fc3e7 0%, #404cf7 100%);
   border: none;
   border-radius: 10px;
   cursor: pointer;

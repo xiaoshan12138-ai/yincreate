@@ -76,36 +76,35 @@
         </div>
       </div>
 
-      <!-- 搜索和操作栏 -->
+      <!-- 项目列表 -->
       <div class="search-action-bar">
-        <div class="search-wrap-member">
-          <i data-lucide="search" style="width: 16px; height: 16px; color: #9ca3af;"></i>
-          <input v-model="searchKeyword" type="text" placeholder="搜索项目ID或名称..." class="search-input-member">
+        <div class="table-header-row">
+          <h3 class="table-title">项目列表（共 {{ filteredProjects.length }} 个）</h3>
+          <div class="header-actions">
+            <div class="search-wrap-member">
+              <i data-lucide="search" style="width: 16px; height: 16px; color: #9ca3af;"></i>
+              <input v-model="searchKeyword" type="text" placeholder="搜索项目ID或名称..." class="search-input-member">
+            </div>
+            <select v-model="departmentFilter" class="filter-select-member">
+              <option>全部部门</option>
+              <option>公司</option>
+              <option>漫剧部</option>
+              <option>电商部</option>
+            </select>
+            <select v-model="statusFilter" class="filter-select-member">
+              <option>全部状态</option>
+              <option>进行中</option>
+              <option>已完成</option>
+              <option>超支预警</option>
+            </select>
+            <button class="export-btn">
+              <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+              导出报表
+            </button>
+          </div>
         </div>
-        <div class="filter-group">
-          <select v-model="departmentFilter" class="filter-select-member">
-            <option>全部部门</option>
-            <option>公司</option>
-            <option>漫剧部</option>
-            <option>电商部</option>
-          </select>
-          <select v-model="statusFilter" class="filter-select-member">
-            <option>全部状态</option>
-            <option>进行中</option>
-            <option>已完成</option>
-            <option>超支预警</option>
-          </select>
-        </div>
-        <button class="export-btn">
-          <i data-lucide="download" style="width: 14px; height: 14px;"></i>
-          导出报表
-        </button>
-      </div>
 
-      <!-- 项目列表表格 -->
-      <div class="account-table-card">
-        <h3 class="table-title">项目列表（共 {{ filteredProjects.length }} 个）</h3>
-
+        <!-- 项目列表表格 -->
         <div class="table-wrapper-scroll">
           <table class="personnel-table">
             <thead>
@@ -233,7 +232,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../../components/layout/AppLayout.vue'
 
@@ -310,6 +309,9 @@ const formatQuota = (v) => v !== null && v !== undefined ? v : '/'
 const openDetail = (project) => {
   selectedProject.value = project
   showDetailModal.value = true
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
 }
 
 const closeDetail = () => {
@@ -326,7 +328,7 @@ onMounted(() => {
 
 <style scoped>
 .project-page {
-  max-width: 1600px;
+  max-width: 1400px;
 }
 
 .enterprise-tab-bar {
@@ -355,10 +357,21 @@ onMounted(() => {
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
-
-.ent-tab:hover { background: #f1f5f9; color: var(--text-primary); }
-.ent-tab.active { background: var(--primary-color); color: white; }
+.ent-tab:hover { color: #3b82f6; }
+.ent-tab.active { color: #3b82f6; }
+.ent-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
 
 .project-header-bar {
   display: flex;
@@ -465,13 +478,30 @@ onMounted(() => {
 
 .search-action-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: 20px;
-  padding: 16px 20px;
+  padding: 24px;
   background: white;
   border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
+}
+
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.table-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -479,8 +509,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  max-width: 350px;
+  width: 240px;
   padding: 8px 14px;
   background: #f8fafc;
   border: 1.5px solid var(--border-light);
@@ -494,11 +523,6 @@ onMounted(() => {
   font-size: 13px;
   color: var(--text-primary);
   background: transparent;
-}
-
-.filter-group {
-  display: flex;
-  gap: 10px;
 }
 
 .filter-select-member {
@@ -515,33 +539,20 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
-  background: #f1f5f9;
-  color: var(--text-secondary);
-  border: none;
+  padding: 8px 16px;
+  background: white;
+  border: 1.5px solid var(--border-light);
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
-.export-btn:hover { background: #e2e8f0; }
-
-.account-table-card {
-  background: white;
-  border: 1.5px solid var(--border-light);
-  border-radius: var(--radius-xl);
-  padding: 24px;
-  overflow-x: auto;
-}
-
-.table-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 16px;
+.export-btn:hover {
+  background: #f8fafc;
 }
 
 .table-wrapper-scroll {
@@ -586,7 +597,7 @@ onMounted(() => {
 .detail-btn {
   padding: 5px 14px;
   background: #eef2ff;
-  color: #6366f1;
+  color: #3b82f6;
   border: none;
   border-radius: 6px;
   font-size: 11.5px;
@@ -595,7 +606,7 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.detail-btn:hover { background: #ddd6fe; }
+.detail-btn:hover { background: #bfdbfe;}
 
 .pagination-dept {
   display: flex;
@@ -657,7 +668,7 @@ onMounted(() => {
   background: white;
   border-radius: 16px;
   width: 90%;
-  max-width: 700px;
+  max-width: 920px;
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);

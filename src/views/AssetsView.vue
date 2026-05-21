@@ -1,7 +1,8 @@
 <template>
   <AppLayout>
+    <!-- 资产管理页面主容器 -->
     <div class="assets-page">
-      <!-- 标签页导航 -->
+      <!-- 顶部标签栏导航 + 存储空间信息 -->
       <div class="assets-tab-bar">
         <div class="tabs-nav">
           <button
@@ -20,7 +21,7 @@
         </div>
       </div>
 
-      <!-- 操作栏 -->
+      <!-- 操作工具栏 - 文件夹选择、上传、搜索、视图切换 -->
       <div class="assets-toolbar">
         <div class="toolbar-left">
           <select class="folder-select">
@@ -57,7 +58,7 @@
         </div>
       </div>
 
-      <!-- 文件夹卡片区域 -->
+      <!-- 文件夹卡片区域 - 我的模板、草稿、素材等 -->
       <div class="folders-row">
         <div
           v-for="(folder, idx) in folders"
@@ -225,17 +226,28 @@ onMounted(() => {
   color: #6b7280;
   cursor: pointer;
   transition: all 0.25s ease;
+  position: relative;
 }
 
 .asset-tab:hover {
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.06);
+  color: #3b82f6;
 }
 
 .asset-tab.active {
-  color: #6366f1;
+  color: #3b82f6;
   font-weight: 700;
-  background: rgba(99, 102, 241, 0.08);
+}
+
+.asset-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 2px;
 }
 
 .storage-info-inline {
@@ -256,7 +268,7 @@ onMounted(() => {
 }
 
 .upgrade-link {
-  color: #6366f1;
+  color: #3b82f6;
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;
@@ -297,7 +309,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 9px 20px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
   color: white;
   border: none;
   border-radius: 10px;
@@ -366,13 +378,13 @@ onMounted(() => {
 }
 
 .view-toggle-btn:hover {
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.04);
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.04);
 }
 
 .view-toggle-btn.active {
-  background: rgba(99, 102, 241, 0.08);
-  color: #6366f1;
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
 }
 
 /* 文件夹卡片行 */
@@ -510,7 +522,7 @@ onMounted(() => {
 }
 
 .placeholder-audio {
-  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
 }
 
 .placeholder-audio-content {
@@ -589,8 +601,8 @@ onMounted(() => {
 }
 
 .file-upload:hover {
-  border-color: #6366f1;
-  background: rgba(99, 102, 241, 0.03);
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.03);
 }
 
 .upload-placeholder {
@@ -656,14 +668,14 @@ onMounted(() => {
 }
 
 .page-btn:hover {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: #3b82f6;
+  color: #3b82f6;
 }
 
 .page-num.active {
-  background: #6366f1;
+  background: #3b82f6;
   color: white;
-  border-color: #6366f1;
+  border-color: #3b82f6;
 }
 
 .page-arrow {

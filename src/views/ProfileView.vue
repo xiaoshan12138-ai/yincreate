@@ -1,7 +1,8 @@
 <template>
   <AppLayout>
+    <!-- 个人资料页面主容器 -->
     <div class="profile-page">
-      <!-- 用户信息卡片 -->
+      <!-- 用户信息卡片 - 头像、昵称、VIP状态 -->
       <div class="profile-card">
         <div class="profile-user-section">
           <img :src="userData.user.avatar" alt="" class="profile-avatar-img" @error="handleImageError">
@@ -24,7 +25,7 @@
         </div>
       </div>
 
-      <!-- 统计数据行 -->
+      <!-- 统计数据行 - 作品数、草稿、收藏、素材 -->
       <div class="stats-row">
         <div v-for="(stat, index) in userStats" :key="index" class="stat-box">
           <div class="stat-icon-wrap" :style="{ background: index === 0 ? '#eef2ff' : index === 1 ? '#fef3e2' : index === 2 ? '#fdf4ff' : '#f0fdf4' }">
@@ -37,7 +38,7 @@
         </div>
       </div>
 
-      <!-- 会员中心 -->
+      <!-- 会员中心 - VIP信息和权益 -->
       <div class="section-block">
         <h3 class="section-title">会员中心</h3>
         <div class="vip-card">
@@ -59,7 +60,7 @@
         <router-link to="/pricing" class="view-more-link">查看权益详情 ›</router-link>
       </div>
 
-      <!-- 安全中心 -->
+      <!-- 安全中心 - 密码、手机、邮箱等安全设置 -->
       <div class="section-block">
         <h3 class="section-title">安全中心</h3>
         <div class="security-list">

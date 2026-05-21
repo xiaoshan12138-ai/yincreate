@@ -35,7 +35,7 @@
             <div class="section-header">
               <div class="section-header-left">
                 <div class="section-icon-wrap" style="background: #eef2ff;">
-                  <i data-lucide="user" style="width: 20px; height: 20px; color: #6366f1;"></i>
+                  <i data-lucide="user" style="width: 20px; height: 20px; color: #3b82f6;"></i>
                 </div>
                 <div>
                   <div class="section-title">个人资料</div>
@@ -93,7 +93,7 @@
             <div class="section-header">
               <div class="section-header-left">
                 <div class="section-icon-wrap" style="background: #eef2ff;">
-                  <i data-lucide="smartphone" style="width: 20px; height: 20px; color: #6366f1;"></i>
+                  <i data-lucide="smartphone" style="width: 20px; height: 20px; color: #3b82f6;"></i>
                 </div>
                 <div>
                   <div class="section-title">手机绑定</div>
@@ -105,7 +105,7 @@
             <div class="setting-row">
               <div class="setting-row-left">
                 <div class="setting-row-icon" style="background: #eef2ff;">
-                  <i data-lucide="smartphone" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                  <i data-lucide="smartphone" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                 </div>
                 <div class="setting-row-info">
                   <span class="setting-row-label">当前手机号</span>
@@ -151,7 +151,7 @@
             <div class="section-header">
               <div class="section-header-left">
                 <div class="section-icon-wrap" style="background: #eef2ff;">
-                  <i data-lucide="mail" style="width: 20px; height: 20px; color: #6366f1;"></i>
+                  <i data-lucide="mail" style="width: 20px; height: 20px; color: #3b82f6;"></i>
                 </div>
                 <div>
                   <div class="section-title">邮箱绑定</div>
@@ -163,7 +163,7 @@
             <div class="setting-row">
               <div class="setting-row-left">
                 <div class="setting-row-icon" style="background: #eef2ff;">
-                  <i data-lucide="mail" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                  <i data-lucide="mail" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                 </div>
                 <div class="setting-row-info">
                   <span class="setting-row-label">当前邮箱</span>
@@ -197,7 +197,7 @@
             <div class="section-header">
               <div class="section-header-left">
                 <div class="section-icon-wrap" style="background: #eef2ff;">
-                  <i data-lucide="key-round" style="width: 20px; height: 20px; color: #6366f1;"></i>
+                  <i data-lucide="key-round" style="width: 20px; height: 20px; color: #3b82f6;"></i>
                 </div>
                 <div>
                   <div class="section-title">密码设置</div>
@@ -275,7 +275,7 @@
               <div class="setting-row">
                 <div class="setting-row-left">
                   <div class="setting-row-icon" style="background: #eef2ff;">
-                    <i data-lucide="bell-ring" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                    <i data-lucide="bell-ring" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                   </div>
                   <div class="setting-row-info">
                     <span class="setting-row-label">系统通知</span>
@@ -327,7 +327,7 @@
               <div class="setting-row">
                 <div class="setting-row-left">
                   <div class="setting-row-icon" style="background: #eef2ff;">
-                    <i data-lucide="mail" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                    <i data-lucide="mail" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                   </div>
                   <div class="setting-row-info">
                     <span class="setting-row-label">邮件总开关</span>
@@ -343,7 +343,7 @@
               <div class="setting-row">
                 <div class="setting-row-left">
                   <div class="setting-row-icon" style="background: #eef2ff;">
-                    <i data-lucide="smartphone" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                    <i data-lucide="smartphone" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                   </div>
                   <div class="setting-row-info">
                     <span class="setting-row-label">推送总开关</span>
@@ -376,7 +376,7 @@
             <div class="setting-row">
               <div class="setting-row-left">
                 <div class="setting-row-icon" style="background: #eef2ff;">
-                  <i data-lucide="user" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                  <i data-lucide="user" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                 </div>
                 <div class="setting-row-info">
                   <span class="setting-row-label">个人资料可见性</span>
@@ -452,8 +452,8 @@
 
             <div class="setting-row">
               <div class="setting-row-left">
-                <div class="setting-row-icon" style="background: #e0e7ff;">
-                  <i data-lucide="bar-chart-3" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                <div class="setting-row-icon" style="background: #dbeafe;">
+                  <i data-lucide="bar-chart-3" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                 </div>
                 <div class="setting-row-info">
                   <span class="setting-row-label">显示活动动态</span>
@@ -519,7 +519,7 @@
             <div class="setting-row">
               <div class="setting-row-left">
                 <div class="setting-row-icon" style="background: #eef2ff;">
-                  <i data-lucide="globe" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                  <i data-lucide="globe" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                 </div>
                 <div class="setting-row-info">
                   <span class="setting-row-label">语言</span>
@@ -576,7 +576,7 @@
             <div class="setting-row">
               <div class="setting-row-left">
                 <div class="setting-row-icon" style="background: #eef2ff;">
-                  <i data-lucide="save" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                  <i data-lucide="save" style="width: 18px; height: 18px; color: #3b82f6;"></i>
                 </div>
                 <div class="setting-row-info">
                   <span class="setting-row-label">自动保存</span>
@@ -894,7 +894,7 @@ onMounted(() => {
 .back-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.04);
+  background: rgba(59, 130, 246, 0.04);
 }
 
 .page-title {
@@ -946,22 +946,32 @@ onMounted(() => {
   background: transparent;
   width: 100%;
   text-align: left;
+  position: relative;
 }
 
 .settings-nav-item:hover {
-  background: #f8fafc;
-  color: var(--text-primary);
+  color: #3b82f6;
 }
 
 .settings-nav-item.active {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
+  color: #3b82f6;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  position: relative;
+}
+
+.settings-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 1px;
 }
 
 .settings-nav-item.active .nav-item-icon {
-  color: white;
+  color: #3b82f6;
 }
 
 .nav-item-icon {
@@ -972,7 +982,7 @@ onMounted(() => {
 }
 
 .settings-nav-item:hover .nav-item-icon {
-  color: var(--text-primary);
+  color: #3b82f6;
 }
 
 .settings-content {
@@ -1045,7 +1055,7 @@ onMounted(() => {
 
 .section-action-btn:hover {
   border-color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.04);
+  background: rgba(59, 130, 246, 0.04);
 }
 
 .profile-edit-card {
@@ -1065,7 +1075,7 @@ onMounted(() => {
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid white;
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
 }
 
 .avatar-edit-overlay {
@@ -1075,7 +1085,7 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1124,7 +1134,7 @@ onMounted(() => {
 
 .profile-form-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 
 .profile-form-textarea {
@@ -1143,7 +1153,7 @@ onMounted(() => {
 
 .profile-form-textarea:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 
 .profile-form-select {
@@ -1261,7 +1271,7 @@ onMounted(() => {
 }
 
 .toggle-switch.active {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
 .toggle-switch::after {
@@ -1367,7 +1377,7 @@ onMounted(() => {
 
 .password-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 
 .password-toggle {
@@ -1394,7 +1404,7 @@ onMounted(() => {
   justify-content: center;
   gap: 6px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -1402,13 +1412,13 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
   align-self: flex-start;
 }
 
 .password-submit-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
 }
 
 .notify-category {

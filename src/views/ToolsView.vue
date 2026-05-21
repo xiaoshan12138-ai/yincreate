@@ -1,7 +1,8 @@
 <template>
   <AppLayout>
+    <!-- 工具页面主容器 -->
     <div class="tools-page">
-      <!-- 标签页导航 -->
+      <!-- 顶部标签栏导航 -->
       <div class="tools-tab-bar">
         <div class="tabs-nav">
           <button
@@ -19,7 +20,7 @@
         </button>
       </div>
 
-      <!-- 工具分类列表 -->
+      <!-- 工具分类列表 - 按类别展示工具卡片 -->
       <template v-for="(category, catIdx) in toolCategories" :key="catIdx">
         <h3 v-if="shouldShowCategory(category)" class="tool-category-title">{{ category.title }}</h3>
         <div v-if="shouldShowCategory(category)" class="tools-grid">
@@ -155,7 +156,6 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 4px;
-  margin-bottom: 28px;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -181,13 +181,23 @@ onMounted(() => {
 
 .tool-tab:hover {
   color: #373151;
-  background: #f9fafb;
 }
 
 .tool-tab.active {
   color: #3b82f6;
   font-weight: 600;
-  background: #eff6ff;
+}
+
+.tool-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 2px;
 }
 
 .my-favorites-btn {
@@ -218,7 +228,7 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 700;
   color: #111827;
-  margin: 28px 0 18px 0;
+  margin: 14px 0 14px 0;
   padding-left: 2px;
 }
 

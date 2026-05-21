@@ -328,7 +328,7 @@ onMounted(() => {
 
 <style scoped>
 .routing-page {
-  max-width: 1600px;
+  max-width: 1400px;
 }
 
 .enterprise-tab-bar {
@@ -357,10 +357,21 @@ onMounted(() => {
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
-
-.ent-tab:hover { background: #f1f5f9; color: var(--text-primary); }
-.ent-tab.active { background: var(--primary-color); color: white; }
+.ent-tab:hover { color: #3b82f6; }
+.ent-tab.active { color: #3b82f6; }
+.ent-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
 
 .routing-toolbar {
   display: flex;

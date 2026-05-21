@@ -1,7 +1,9 @@
 <template>
   <header class="top-nav">
+    <!-- 页面标题 -->
     <h2 class="page-title">{{ pageTitle }}</h2>
 
+    <!-- 搜索框 -->
     <div class="search-container">
       <input
         type="text"
@@ -13,12 +15,15 @@
       <i data-lucide="search" class="search-icon" style="width: 18px; height: 18px;"></i>
     </div>
 
+    <!-- 操作按钮区域 -->
     <div class="nav-actions">
+      <!-- 通知按钮 -->
       <button class="action-btn notification-btn" title="通知">
         <i data-lucide="bell" style="width: 18px; height: 18px;"></i>
         <span class="notification-badge">3</span>
       </button>
 
+      <!-- 用户信息 -->
       <div class="user-info" @click="goToProfile">
         <span class="user-avatar">{{ userAvatar }}</span>
         <span class="user-name">{{ userName }}</span>
@@ -33,6 +38,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import { useAppStore } from '../../stores/app'
+import { userData } from '../../data/userData'
 
 const props = defineProps({
   pageTitle: {
@@ -67,8 +73,6 @@ onMounted(() => {
     lucide.createIcons()
   }
 })
-
-import { userData } from '../../data/userData'
 </script>
 
 <style scoped>
@@ -76,7 +80,7 @@ import { userData } from '../../data/userData'
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 28px;
+  padding: 12px 28px;
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(229, 231, 235, 0.7);

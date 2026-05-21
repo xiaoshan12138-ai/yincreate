@@ -78,154 +78,101 @@
         </div>
       </div>
 
-      <!-- 图表区域 -->
-      <div class="charts-grid">
-        <!-- 消耗趋势图 -->
-        <div class="chart-card chart-large">
+      <!-- 图表区域 - 第一行：额度消耗趋势 + 模型使用分布 (2:1) -->
+      <div class="row-grid row-2col">
+        <div class="chart-card">
           <div class="chart-header">
-            <h4 class="chart-title">消耗趋势分析</h4>
+            <h4 class="chart-title">额度消耗趋势</h4>
             <div class="chart-actions">
-              <button class="chart-action-btn">导出</button>
+              <button class="chart-action-btn">近7天</button>
+              <button class="chart-action-btn">近30天</button>
+              <button class="chart-action-btn active">本月</button>
             </div>
           </div>
           <div id="trend-chart" class="chart-container"></div>
         </div>
 
-        <!-- 内容生成统计 -->
         <div class="chart-card">
           <div class="chart-header">
-            <h4 class="chart-title">内容生成统计</h4>
-          </div>
-          <div id="content-chart" class="chart-container"></div>
-        </div>
-
-        <!-- AI模型使用分布 -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h4 class="chart-title">AI模型使用分布</h4>
+            <h4 class="chart-title">模型使用分布</h4>
           </div>
           <div id="model-chart" class="chart-container"></div>
         </div>
+      </div>
 
-        <!-- 部门成本分布 -->
+      <!-- 第二行：内容生成量趋势 (单独一行) -->
+      <div class="row-grid row-full">
         <div class="chart-card">
           <div class="chart-header">
-            <h4 class="chart-title">部门成本分布</h4>
+            <h4 class="chart-title">内容生成量趋势</h4>
           </div>
-          <div id="cost-chart" class="chart-container"></div>
+          <div id="content-chart" class="chart-container"></div>
         </div>
       </div>
 
-      <!-- 账号池与部门排名 -->
-      <div class="bottom-grid">
-        <!-- 账号池状态 -->
+      <!-- 第三行：视频组消耗TOP + 成本构成 + 账号池使用情况 (1:1:1) -->
+      <div class="row-grid row-3col">
         <div class="info-card">
           <div class="info-card-header">
-            <h4 class="info-card-title">账号池状态</h4>
-            <router-link to="/enterprise/member" class="manage-link">管理账号 ›</router-link>
+            <h4 class="info-card-title">视频组消耗TOP</h4>
           </div>
-          <div class="account-pool-info">
-            <div id="account-pool-chart" class="pool-chart"></div>
-            <div class="pool-stats">
-              <div class="pool-stat-item">
-                <span class="pool-stat-label">总账号数</span>
-                <span class="pool-stat-value">{{ accountPool.total }}</span>
-              </div>
-              <div class="pool-stat-item">
-                <span class="pool-stat-label">已分配</span>
-                <span class="pool-stat-value pool-allocated">{{ accountPool.allocated }}</span>
-              </div>
-              <div class="pool-stat-item">
-                <span class="pool-stat-label">可用</span>
-                <span class="pool-stat-value pool-available">{{ accountPool.available }}</span>
-              </div>
-              <div class="pool-stat-item">
-                <span class="pool-stat-label">已回收</span>
-                <span class="pool-stat-value pool-recycled">{{ accountPool.recycled }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 部门成本排名 -->
-        <div class="info-card info-card-large">
-          <div class="info-card-header">
-            <h4 class="info-card-title">部门成本排名</h4>
-            <router-link to="/enterprise/department" class="manage-link">查看全部 ›</router-link>
-          </div>
-          <div class="ranking-table">
+          <div class="ranking-table compact-table">
             <table>
               <thead>
-                <tr>
-                  <th>排名</th>
-                  <th>部门名称</th>
-                  <th>账号数</th>
-                  <th>总消耗(¥)</th>
-                  <th>人均成本(¥)</th>
-                  <th>环比变化</th>
-                </tr>
+                <tr><th>排名</th><th>视频组名称</th><th>总消耗</th><th>环比变化</th></tr>
               </thead>
               <tbody>
-                <tr v-for="dept in departmentRanking" :key="dept.rank">
-                  <td>
-                    <span :class="['rank-badge', 'rank-' + dept.rank]">{{ dept.rank }}</span>
-                  </td>
-                  <td>{{ dept.name }}</td>
-                  <td>{{ dept.accounts }}</td>
-                  <td class="cost-cell">¥{{ dept.totalCost.toLocaleString() }}</td>
-                  <td>¥{{ dept.avgCost.toLocaleString() }}</td>
-                  <td>
-                    <span :class="['change-indicator', dept.change > 0 ? 'up' : 'down']">
-                      <i :data-lucide="dept.change > 0 ? 'trending-up' : 'trending-down'" style="width: 12px; height: 12px;"></i>
-                      {{ Math.abs(dept.change) }}%
-                    </span>
-                  </td>
+                <tr v-for="(item, idx) in videoGroupRanking" :key="idx">
+                  <td><span :class="['rank-badge', 'rank-' + (idx + 1)]">{{ idx + 1 }}</span></td>
+                  <td>{{ item.name }}</td>
+                  <td class="cost-cell">¥{{ item.cost.toLocaleString() }}</td>
+                  <td :class="item.change > 0 ? 'text-green' : 'text-red'">{{ item.change > 0 ? '+' : '' }}{{ item.change }}%</td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </div>
 
-          <!-- 部门预算进度 -->
-          <div class="budget-progress-section">
-            <h5 class="budget-title">部门预算使用情况</h5>
-            <div class="budget-items">
-              <div v-for="budget in budgetData" :key="budget.name" class="budget-item">
-                <div class="budget-header-row">
-                  <span class="budget-dept-name">{{ budget.name }}</span>
-                  <span class="budget-percent" :class="getBudgetClass(budget.percent)">{{ budget.percent }}%</span>
-                </div>
-                <div class="budget-bar-bg">
-                  <div
-                    class="budget-bar-fill"
-                    :style="{ width: budget.percent + '%' }"
-                    :class="getBudgetClass(budget.percent)"
-                  ></div>
-                </div>
-                <div class="budget-values">
-                  <span>已用: ¥{{ budget.used.toLocaleString() }}</span>
-                  <span>总额: ¥{{ budget.total.toLocaleString() }}</span>
-                </div>
-              </div>
+        <div class="info-card">
+          <div class="info-card-header">
+            <h4 class="info-card-title">成本构成（按视频组）</h4>
+          </div>
+          <div id="cost-chart" class="chart-container"></div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <h4 class="info-card-title">账号池使用情况</h4>
+          </div>
+          <div id="account-pool-chart" class="pool-chart"></div>
+          <div class="pool-stats">
+            <div v-for="(stat, idx) in accountPoolStats" :key="idx" class="pool-stat-item">
+              <span class="pool-stat-label">{{ stat.label }}</span>
+              <span class="pool-stat-value">{{ stat.value }}</span>
+              <span class="pool-stat-count">{{ stat.count }}</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 账号消耗TOP5 -->
+      <!-- 第四行：预算执行进度 (单独一行) -->
+      <div class="row-grid row-full">
         <div class="info-card">
           <div class="info-card-header">
-            <h4 class="info-card-title">账号消耗 TOP5</h4>
-            <router-link to="/enterprise/member" class="manage-link">查看全部 ›</router-link>
+            <h4 class="info-card-title">预算执行进度</h4>
           </div>
-          <div class="top-list">
-            <div v-for="(account, idx) in accountRanking" :key="idx" class="top-account-item">
-              <span :class="['top-rank', 'rank-' + (idx + 1)]">{{ idx + 1 }}</span>
-              <div class="top-account-info">
-                <span class="top-account-name">{{ account.userName }}</span>
-                <span class="top-account-id">{{ account.accountId }}</span>
+          <div class="budget-items">
+            <div v-for="budget in budgetData" :key="budget.name" class="budget-item">
+              <div class="budget-header-row">
+                <span class="budget-dept-name">{{ budget.name }}</span>
+                <span class="budget-percent" :class="getBudgetClass(budget.percent)">{{ budget.percent }}%</span>
               </div>
-              <div class="top-account-cost">
-                <span class="cost-value">¥{{ account.cost.toLocaleString() }}</span>
-                <span class="cost-dept">{{ account.dept }}</span>
+              <div class="budget-bar-bg">
+                <div class="budget-bar-fill" :style="{ width: budget.percent + '%' }" :class="getBudgetClass(budget.percent)"></div>
+              </div>
+              <div class="budget-values">
+                <span>已耗 ¥{{ budget.used.toLocaleString() }}</span>
+                <span>总额 ¥{{ budget.total.toLocaleString() }}</span>
               </div>
             </div>
           </div>
@@ -269,6 +216,19 @@ const accountPool = ref({
   available: 6,
   recycled: 2
 })
+
+const accountPoolStats = ref([
+  { label: '已分配', value: '42', count: '' },
+  { label: '可用', value: '6', count: '' },
+  { label: '已回收', value: '2', count: '' }
+])
+
+const videoGroupRanking = ref([
+  { name: '视频1组', cost: 78500, change: 15.2 },
+  { name: '视频2组', cost: 56700, change: 8.5 },
+  { name: '视频3组', cost: 126760, change: -2.3 },
+  { name: '视频4组', cost: 81000, change: 22.1 }
+])
 
 const departmentRanking = ref([
   { rank: 1, name: '视频1组', accounts: 12, totalCost: 78500, avgCost: 6542, change: 15.2 },
@@ -586,16 +546,27 @@ onMounted(() => {
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .ent-tab:hover {
-  background: #f1f5f9;
-  color: var(--text-primary);
+  color: #3b82f6;
 }
 
 .ent-tab.active {
-  background: var(--primary-color);
-  color: white;
+  color: #3b82f6;
+}
+
+.ent-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #3b82f6;
+  border-radius: 2px;
 }
 
 .time-range-selector {
@@ -798,11 +769,22 @@ onMounted(() => {
   color: var(--text-tertiary);
 }
 
-.charts-grid {
+.row-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+
+.row-2col {
+  grid-template-columns: 2fr 1fr;
+}
+
+.row-3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.row-full {
+  grid-template-columns: 1fr;
 }
 
 .chart-card {
@@ -810,10 +792,6 @@ onMounted(() => {
   border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
   padding: 20px;
-}
-
-.chart-large {
-  grid-row: span 2;
 }
 
 .chart-header {
@@ -846,8 +824,10 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.chart-action-btn:hover {
-  background: #e2e8f0;
+.chart-action-btn:hover,
+.chart-action-btn.active {
+  background: #3b82f6;
+  color: white;
 }
 
 .chart-container {
@@ -855,21 +835,11 @@ onMounted(() => {
   height: 280px;
 }
 
-.bottom-grid {
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  gap: 16px;
-}
-
 .info-card {
   background: white;
   border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
   padding: 20px;
-}
-
-.info-card-large {
-  grid-row: span 2;
 }
 
 .info-card-header {
@@ -898,16 +868,16 @@ onMounted(() => {
 }
 
 .pool-chart {
-  width: 160px;
-  height: 160px;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto;
 }
 
 .pool-stats {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 12px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .pool-stat-item {
@@ -927,6 +897,12 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
+.pool-stat-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
 .pool-allocated {
   color: #10b981;
 }
@@ -942,6 +918,20 @@ onMounted(() => {
 .ranking-table {
   overflow-x: auto;
   margin-bottom: 20px;
+}
+
+.ranking-table.compact-table th,
+.ranking-table.compact-table td {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.text-green {
+  color: #10b981;
+}
+
+.text-red {
+  color: #ef4444;
 }
 
 .ranking-table table {

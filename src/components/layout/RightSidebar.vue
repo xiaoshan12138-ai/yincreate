@@ -3,10 +3,12 @@
     <!-- 用户信息和统计数据 -->
     <div class="user-section">
       <div class="user-profile" @click="$router.push('/profile')">
+        <!-- 用户头像 -->
         <div class="user-avatar">{{ userData.user.avatar }}</div>
         <div class="user-details">
           <div class="user-name-row">
             <span class="user-name">{{ userData.user.name }}</span>
+            <!-- VIP标识 -->
             <span v-if="userData.user.isVip" class="vip-badge">
               <i data-lucide="crown" style="width: 10px; height: 10px;"></i>
               VIP
@@ -17,6 +19,7 @@
         </div>
       </div>
 
+      <!-- 统计数据网格 -->
       <div class="stats-grid">
         <div v-for="(stat, index) in userStats" :key="index" class="stat-card">
           <div class="stat-number">{{ stat.value }}</div>
@@ -86,14 +89,12 @@ onMounted(() => {
 
 <style scoped>
 .right-sidebar {
-  width: 270px;
-  min-width: 270px;
-  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   border-left: 1px solid rgba(243, 244, 246, 1);
   padding: 16px 14px;
-  overflow-y: auto;
   position: relative;
   z-index: 50;
 }

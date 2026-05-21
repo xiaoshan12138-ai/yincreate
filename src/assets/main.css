@@ -1,4 +1,7 @@
-/* 全局基础样式 - 影创studio */
+/* ============================================
+   影创studio - AI视频创作平台
+   全局基础样式
+   ============================================ */
 
 /* 重置默认样式 */
 *,
@@ -20,7 +23,7 @@ body {
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.6;
   color: #111827;
-  background: linear-gradient(135deg, #fafafa 0%, #f5f3ff 100%);
+  background: white;
   overflow-x: hidden;
   min-height: 100vh;
 }
