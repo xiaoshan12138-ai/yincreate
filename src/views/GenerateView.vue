@@ -174,47 +174,169 @@
 
           <!-- 输入框 -->
           <div class="prompt-input-container">
-            <textarea
-              v-model="prompt"
-              class="prompt-input"
-              placeholder="描述您想要生成的内容，例如：一只可爱的猫咪在花园里玩耍..."
-              rows="4"
-              maxlength="2000"
-            ></textarea>
-
-            <!-- 已上传文件预览区 -->
-            <div v-if="uploadedFiles.length > 0" class="uploaded-files-preview">
+            <!-- 提示词输入区（支持@提及下拉） -->
+            <div class="prompt-editor-wrapper" ref="editorWrapperRef">
               <div
-                v-for="(file, index) in uploadedFiles"
-                :key="index"
-                class="uploaded-file-item"
-                :class="[`type-${file.type}`]"
-              >
-                <img
-                  v-if="file.type === 'image'"
-                  :src="convertBase64ToBlobUrl(file.url)"
-                  :alt="file.name"
-                  class="preview-thumb"
-                />
-                <video
-                  v-else-if="file.type === 'video'"
-                  :src="file.url"
-                  class="preview-thumb"
-                  muted
-                />
-                <div v-else-if="file.type === 'audio'" class="audio-preview">
-                  <i data-lucide="music" style="width: 24px; height: 24px;"></i>
-                  <span>{{ file.name }}</span>
+                class="prompt-input"
+                contenteditable="true"
+                :placeholder="promptPlaceholder"
+                @input="onPromptInput"
+                @keydown="onPromptKeydown"
+                ref="promptEditorRef"
+              ></div>
+
+              <!-- @提及下拉列表 -->
+              <Teleport to="body">
+                <div
+                  v-if="showAtMentionDropdown"
+                  class="at-mention-dropdown"
+                  :style="mentionDropdownStyle"
+                  @mousedown.prevent
+                >
+                  <div class="at-mention-header">选择要引用的素材</div>
+                  <div class="at-mention-list">
+                    <div
+                      v-for="(file, idx) in atMentionCandidates"
+                      :key="'cand-' + idx"
+                      :class="['at-mention-item', { active: activeMentionIndex === idx }]"
+                      @click="selectAtMention(file)"
+                      @mouseenter="activeMentionIndex = idx"
+                    >
+                      <div class="mention-thumb-wrap">
+                        <img
+                          v-if="file.type === 'image'"
+                          :src="convertBase64ToBlobUrl(file.url)"
+                          class="mention-thumb"
+                        />
+                        <video
+                          v-else-if="file.type === 'video'"
+                          :src="file.url"
+                          class="mention-thumb"
+                          muted
+                        />
+                        <div v-else class="mention-thumb audio-thumb">
+                          <i data-lucide="music" style="width: 16px; height: 16px;"></i>
+                        </div>
+                        <span :class="['mention-type-icon', file.type]">
+                          {{ file.type === 'video' ? '▶' : '🖼' }}
+                        </span>
+                      </div>
+                      <div class="mention-info">
+                        <span class="mention-name">{{ file.name || (file.type === 'video' ? '视频' : '图片') }}</span>
+                        <span class="mention-type-label">{{ getFileTypeLabel(file.type) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="atMentionCandidates.length === 0" class="at-mention-empty">
+                    暂无可引用素材，请先上传图片或视频
+                  </div>
                 </div>
-                <button class="remove-file-btn" @click="removeUploadedFile(index)" title="删除">
-                  <i data-lucide="x" style="width: 14px; height: 14px;"></i>
-                </button>
-                <div class="file-type-badge">{{ getFileTypeLabel(file.type) }}</div>
+              </Teleport>
+            </div>
+
+            <!-- 媒体素材栏：上传素材 + 引用素材（同一行流式布局） -->
+            <div v-if="uploadedFiles.length > 0 || referencedFiles.length > 0" class="media-bar">
+              <!-- 上传素材 -->
+              <div v-if="uploadedFiles.length > 0" class="media-section">
+                <div class="section-label">
+                  <i data-lucide="upload" style="width: 13px; height: 13px;"></i>
+                  上传素材
+                  <span class="section-count">{{ uploadedFiles.length }}</span>
+                </div>
+                <div class="media-items-row">
+                  <div
+                    v-for="(file, index) in uploadedFiles"
+                    :key="'up-' + index"
+                    class="media-item draggable-item"
+                    :class="[`type-${file.type}`]"
+                    draggable="true"
+                    @dragstart="onDragStart(file, index, 'upload')"
+                    @dragend="onDragEnd"
+                    @click.stop="clickToReference(file)"
+                  >
+                    <img
+                      v-if="file.type === 'image'"
+                      :src="convertBase64ToBlobUrl(file.url)"
+                      :alt="file.name"
+                      class="preview-thumb"
+                    />
+                    <video
+                      v-else-if="file.type === 'video'"
+                      :src="file.url"
+                      class="preview-thumb"
+                      muted
+                    />
+                    <div v-else-if="file.type === 'audio'" class="audio-preview">
+                      <i data-lucide="music" style="width: 18px; height: 18px;"></i>
+                      <span>{{ file.name }}</span>
+                    </div>
+                    <button class="remove-file-btn" @click="removeUploadedFile(index)" title="删除">
+                      <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <div class="file-type-badge">{{ getFileTypeLabel(file.type) }}</div>
+                    <div class="drag-hint-overlay">
+                      <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                      点击引用
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 分隔 -->
+              <div
+                v-if="uploadedFiles.length > 0 && referencedFiles.length > 0"
+                class="media-bar-divider"
+              ></div>
+
+              <!-- 引用素材（紧跟上传栏后面） -->
+              <div v-if="referencedFiles.length > 0" class="media-section ref-section">
+                <div class="section-label">
+                  <i data-lucide="at-sign" style="width: 13px; height: 13px;"></i>
+                  @ 引用素材
+                  <span class="section-count">{{ referencedFiles.length }}</span>
+                </div>
+                <div class="media-items-row">
+                  <div
+                    v-for="refFile in referencedFiles"
+                    :key="'ref-' + refFile.atId"
+                    class="media-item ref-item"
+                    :class="[`type-${refFile.type}`, { active: activeAtTagId === refFile.atId }]"
+                    @click="focusAtTagById(refFile.atId)"
+                  >
+                    <img
+                      v-if="refFile.type === 'image'"
+                      :src="convertBase64ToBlobUrl(refFile.url)"
+                      :alt="refFile.name"
+                      class="preview-thumb"
+                    />
+                    <video
+                      v-else-if="refFile.type === 'video'"
+                      :src="refFile.url"
+                      class="preview-thumb"
+                      muted
+                    />
+                    <div class="ref-at-badge">@{{ refFile.atLabel }}</div>
+                    <button class="remove-ref-btn" @click.stop="removeReferencedFile(refFile.atId)" title="取消引用">
+                      <i data-lucide="x" style="width: 11px; height: 11px;"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div class="input-footer">
-              <span class="char-count">{{ prompt.length }} / 2000</span>
+              <div class="footer-left">
+                <span class="char-count">{{ prompt.length }} / 2000</span>
+                <button
+                  v-if="selectedType === 'video'"
+                  :class="['sound-toggle-btn', { active: videoSoundEnabled }]"
+                  @click="videoSoundEnabled = !videoSoundEnabled"
+                  :title="videoSoundEnabled ? '点击关闭声音' : '点击开启声音'"
+                >
+                  <i :data-lucide="videoSoundEnabled ? 'volume-2' : 'volume-x'" style="width: 16px; height: 16px;"></i>
+                  {{ videoSoundEnabled ? '有声' : '无声' }}
+                </button>
+              </div>
               <div class="input-actions">
                 <div class="upload-dropdown" :class="{ open: isUploadDropdownOpen }">
                   <button class="upload-btn" @click.stop="toggleUploadDropdown">
@@ -223,18 +345,29 @@
                     <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
                   </button>
                   <div v-if="isUploadDropdownOpen" class="upload-menu" @click.stop>
-                    <button class="upload-option" @click="handleUploadType('image')">
-                      <i data-lucide="image-plus" style="width: 16px; height: 16px;"></i>
-                      上传图片
-                    </button>
-                    <button class="upload-option" @click="handleUploadType('video')">
-                      <i data-lucide="video-plus" style="width: 16px; height: 16px;"></i>
-                      上传视频
-                    </button>
-                    <button class="upload-option" @click="handleUploadType('audio')">
-                      <i data-lucide="music-plus" style="width: 16px; height: 16px;"></i>
-                      上传音频
-                    </button>
+                    <div class="upload-menu-section">
+                      <div class="upload-section-title">本地上传</div>
+                      <button class="upload-option" @click="handleUploadType('image')">
+                        <i data-lucide="image-plus" style="width: 16px; height: 16px;"></i>
+                        上传图片
+                      </button>
+                      <button class="upload-option" @click="handleUploadType('video')">
+                        <i data-lucide="video-plus" style="width: 16px; height: 16px;"></i>
+                        上传视频
+                      </button>
+                      <button class="upload-option" @click="handleUploadType('audio')">
+                        <i data-lucide="music-plus" style="width: 16px; height: 16px;"></i>
+                        上传音频
+                      </button>
+                    </div>
+                    <div class="upload-menu-divider"></div>
+                    <div class="upload-menu-section">
+                      <div class="upload-section-title">云资料库</div>
+                      <button class="upload-option cloud-option" @click="openCloudLibrary">
+                        <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                        从云资料库选择
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <button
@@ -389,6 +522,110 @@
         </div>
       </div>
     </div>
+
+    <!-- 云资料库选择弹窗 -->
+    <Teleport to="body">
+      <div v-if="showCloudLibrary" class="cloud-library-modal-overlay" @click.self="closeCloudLibrary">
+        <div class="cloud-library-modal">
+          <!-- 弹窗头部 -->
+          <div class="cloud-modal-header">
+            <h3 class="cloud-modal-title">
+              <i data-lucide="cloud" style="width: 20px; height: 20px;"></i>
+              云资料库
+            </h3>
+            <button class="cloud-modal-close" @click="closeCloudLibrary">
+              <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+            </button>
+          </div>
+
+          <!-- 搜索栏 -->
+          <div class="cloud-search-bar">
+            <i data-lucide="search" style="width: 16px; height: 16px; color: #9ca3af;"></i>
+            <input
+              type="text"
+              v-model="cloudSearchKeyword"
+              placeholder="搜索云资料库中的文件..."
+              class="cloud-search-input"
+            />
+          </div>
+
+          <!-- 文件类型筛选 -->
+          <div class="cloud-filter-tabs">
+            <button
+              v-for="tab in cloudFilterTabs"
+              :key="tab.id"
+              :class="['cloud-tab', { active: cloudActiveTab === tab.id }]"
+              @click="cloudActiveTab = tab.id"
+            >
+              <i :data-lucide="tab.icon" style="width: 14px; height: 14px;"></i>
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <!-- 文件列表 -->
+          <div class="cloud-files-container">
+            <div v-if="filteredCloudFiles.length === 0" class="cloud-empty-state">
+              <i data-lucide="folder-open" style="width: 48px; height: 48px; color: #d1d5db;"></i>
+              <p>暂无文件</p>
+              <span class="cloud-empty-hint">请先在资产管理页面上传文件到云资料库</span>
+            </div>
+            <div v-else class="cloud-files-grid">
+              <div
+                v-for="(file, idx) in filteredCloudFiles"
+                :key="'cloud-' + idx"
+                :class="['cloud-file-item', `type-${file.type}`, { selected: isCloudFileSelected(file) }]"
+                @click="toggleCloudFileSelection(file)"
+              >
+                <div class="cloud-file-thumb">
+                  <img
+                    v-if="file.type === 'image' && file.thumbnail"
+                    :src="file.thumbnail"
+                    :alt="file.name"
+                  />
+                  <video
+                    v-else-if="file.type === 'video' && file.thumbnail"
+                    :src="file.url || file.thumbnail"
+                    muted
+                    class="cloud-video-thumb"
+                  />
+                  <div v-else class="cloud-file-placeholder" :class="'placeholder-' + file.type">
+                    <i
+                      :data-lucide="file.type === 'audio' ? 'music' : (file.type === 'video' ? 'video' : 'file')"
+                      style="width: 32px; height: 32px;"
+                    ></i>
+                  </div>
+                  <div v-if="isCloudFileSelected(file)" class="cloud-selected-check">
+                    <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                  </div>
+                </div>
+                <div class="cloud-file-info">
+                  <p class="cloud-file-name">{{ file.name }}</p>
+                  <span class="cloud-file-meta">{{ getFileTypeLabel(file.type) }} · {{ formatCloudFileSize(file.size) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部操作栏 -->
+          <div class="cloud-modal-footer">
+            <div class="cloud-selection-info">
+              已选择 {{ selectedCloudFiles.length }} 个文件
+            </div>
+            <div class="cloud-actions">
+              <button class="cloud-btn-secondary" @click="closeCloudLibrary">取消</button>
+              <button
+                class="cloud-btn-primary"
+                :disabled="selectedCloudFiles.length === 0"
+                @click="confirmCloudSelection"
+              >
+                确认选择
+                <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </AppLayout>
 </template>
 
@@ -396,8 +633,12 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import AppLayout from '../components/layout/AppLayout.vue'
 
+// const API_CONFIG = {
+//    BASE_URL: 'http://192.168.31.243:8003/api/v1'
+// }
 const API_CONFIG = {
-  BASE_URL: 'http://192.168.31.243:8003/api/v1'
+  //使用相对路径，自动匹配当前域名和端口
+ BASE_URL: '/api/v1'
 }
 
 const VENDOR_B_API_KEY = 'ErtveAQybj1XCVRsncebuiIYzTxUV0tganVf4bMijr5SKVzU'
@@ -408,6 +649,23 @@ let globalModels = {
   voices: []
 }
 const uploadedFiles = ref([])
+const referencedFiles = ref([])
+const atTags = ref([])
+const activeAtTagId = ref(null)
+const promptEditorRef = ref(null)
+const editorWrapperRef = ref(null)
+const promptPlaceholder = '描述您想要生成的内容，例如：一只可爱的猫咪在花园里玩耍... 输入 @ 可引用素材'
+let atVideoCounter = 0
+let atImageCounter = 0
+
+const showAtMentionDropdown = ref(false)
+const atMentionCandidates = computed(() => {
+  const alreadyReferencedIds = new Set(referencedFiles.value.map(r => r.sourceId))
+  return uploadedFiles.value.filter(f => !alreadyReferencedIds.has(f.object_id))
+})
+const activeMentionIndex = ref(0)
+const mentionDropdownStyle = ref({})
+let mentionAnchorRange = null
 
 function showToast(msg, type = 'info') {
   console.log(`[${type.toUpperCase()}] ${msg}`)
@@ -544,10 +802,80 @@ function selectModel(model) {
 }
 const selectedRatio = ref('16:9')
 const selectedQuality = ref('hd')
+const videoSoundEnabled = ref(false)
 const isGenerating = ref(false)
 const isUploadDropdownOpen = ref(false)
 const generatedCards = ref([])
 const expandedCardId = ref(null)
+
+const showCloudLibrary = ref(false)
+const cloudSearchKeyword = ref('')
+const cloudActiveTab = ref('all')
+const selectedCloudFiles = ref([])
+
+const cloudFilterTabs = [
+  { id: 'all', label: '全部', icon: 'layout-grid' },
+  { id: 'image', label: '图片', icon: 'image' },
+  { id: 'video', label: '视频', icon: 'video' },
+  { id: 'audio', label: '音频', icon: 'music' }
+]
+
+const cloudLibraryFiles = ref([
+  {
+    id: 'cloud_1',
+    name: '风景照片1.jpg',
+    type: 'image',
+    thumbnail: 'https://picsum.photos/200/150?random=1',
+    url: '',
+    size: 2048576,
+    uploadTime: '2024-01-15'
+  },
+  {
+    id: 'cloud_2',
+    name: '人物肖像.png',
+    type: 'image',
+    thumbnail: 'https://picsum.photos/200/150?random=2',
+    url: '',
+    size: 1536000,
+    uploadTime: '2024-01-14'
+  },
+  {
+    id: 'cloud_3',
+    name: '产品展示.mp4',
+    type: 'video',
+    thumbnail: 'https://picsum.photos/200/150?random=3',
+    url: '',
+    size: 52428800,
+    uploadTime: '2024-01-13'
+  },
+  {
+    id: 'cloud_4',
+    name: '背景音乐.mp3',
+    type: 'audio',
+    thumbnail: null,
+    url: '',
+    size: 5242880,
+    uploadTime: '2024-01-12'
+  },
+  {
+    id: 'cloud_5',
+    name: '城市夜景.jpg',
+    type: 'image',
+    thumbnail: 'https://picsum.photos/200/150?random=4',
+    url: '',
+    size: 3072000,
+    uploadTime: '2024-01-11'
+  },
+  {
+    id: 'cloud_6',
+    name: '动画片段.mov',
+    type: 'video',
+    thumbnail: 'https://picsum.photos/200/150?random=5',
+    url: '',
+    size: 104857600,
+    uploadTime: '2024-01-10'
+  }
+])
 
 const generateTypes = [
   { id: 'image', label: '图片生成', icon: 'image' },
@@ -576,171 +904,26 @@ function classifyModels(fetchedModels) {
 
   if (!fetchedModels) return result
 
-  const allModels = [
-    ...(fetchedModels.video_models || []).map(m => ({ ...m, _source: 'video_models' })),
-    ...(fetchedModels.image_models || []).map(m => ({ ...m, _source: 'image_models' })),
-    ...(fetchedModels.voices || []).map(m => ({ ...m, _source: 'voices', _isVoice: true }))
-  ]
+  result.image = (fetchedModels.image_models || []).map(m => ({
+    ...m,
+    inputType: 'text',
+    categoryLabel: '文本输入'
+  }))
 
-  allModels.forEach(model => {
-    const desc = (model.description || '').toLowerCase()
-    const name = (model.name || '').toLowerCase()
-    const mid = (model.id || '').toLowerCase()
-    const modelFeature = (model.feature || model.capabilities || '').toLowerCase()
-    const source = model._source
-    delete model._source
+  result.video = (fetchedModels.video_models || []).map(m => ({
+    ...m,
+    inputType: 'text',
+    categoryLabel: '文本输入'
+  }))
 
-    console.log(`🔍 分析模型: ${model.name}`, { desc, source })
+  result.digitalHuman = (fetchedModels.voices || []).map(m => ({
+    ...m,
+    inputType: 'audio',
+    categoryLabel: '音频输入',
+    _isDigitalHuman: true
+  }))
 
-    const isTextToImageSignal = (
-      desc.includes('text_to_image') ||
-      desc.includes('image_generation') ||
-      modelFeature.includes('text_to_image')
-    )
-
-    const isImageInputSignal = (
-      desc.includes('图生视频') ||
-      desc.includes('图生') ||
-      desc.includes('img2vid') ||
-      desc.includes('image_to_video') ||
-      desc.includes('image2video') ||
-      desc.includes('参考生成视频') ||
-      desc.includes('首帧') ||
-      desc.includes('first_frame') ||
-      desc.includes('首尾帧') ||
-      desc.includes('first_last_frame') ||
-      desc.includes('智能多帧') ||
-      desc.includes('smart_multi_frame') ||
-      desc.includes('multi_frame') ||
-      desc.includes('场景参考') ||
-      desc.includes('scene_reference') ||
-      desc.includes('全局参考') ||
-      desc.includes('global_reference') ||
-      desc.includes('图片参考') ||
-      desc.includes('image_reference') ||
-      desc.includes('多图参考') ||
-      desc.includes('multi_reference') ||
-      desc.includes('图片输入') ||
-      desc.includes('image_input') ||
-      desc.includes('图生图') ||
-      desc.includes('img2img') ||
-      desc.includes('image_edit') ||
-      desc.includes('inpainting') ||
-      desc.includes('局部重绘') ||
-      desc.includes('扩图') ||
-      desc.includes('outpaint') ||
-      desc.includes('消除笔') ||
-      desc.includes('erase') ||
-      desc.includes('换脸') ||
-      desc.includes('face_swap') ||
-      desc.includes('lip_sync') ||
-      desc.includes('对口型') ||
-      desc.includes('换装') ||
-      desc.includes('outfit') ||
-      desc.includes('风格转换') ||
-      desc.includes('style_transfer') ||
-      desc.includes('风格替换') ||
-      desc.includes('style_replace') ||
-      desc.includes('场景替换') ||
-      desc.includes('scene_replace') ||
-      desc.includes('动作模仿') ||
-      desc.includes('motion_imitate') ||
-      desc.includes('motion_imitation') ||
-      desc.includes('特效复刻') ||
-      desc.includes('effect_copy') ||
-      desc.includes('物品修复') ||
-      desc.includes('object_repair') ||
-      desc.includes('object_fix') ||
-      desc.includes('色彩还原') ||
-      desc.includes('color_restore') ||
-      desc.includes('智能消除') ||
-      desc.includes('smart_remove') ||
-      desc.includes('remove_bg') ||
-      desc.includes('upscale') ||
-      desc.includes('超分辨率') ||
-      desc.includes('image_extend') ||
-      desc.includes('object_repair') ||
-      desc.includes('object_replace') ||
-      modelFeature.includes('image_reference') ||
-      modelFeature.includes('global_reference') ||
-      modelFeature.includes('image_edit') ||
-      modelFeature.includes('image_input') ||
-      modelFeature.includes('img2vid') ||
-      modelFeature.includes('img2video') ||
-      (name.includes('image') && !desc.includes('text_to_video'))
-    )
-
-    const isTextToVideoSignal = (
-      desc.includes('text_to_video') ||
-      desc.includes('文生视频') ||
-      desc.includes('文本转视频') ||
-      desc.includes('motion_control') ||
-      desc.includes('template_effect') ||
-      desc.includes('视频扩写') ||
-      desc.includes('video_expand') ||
-      modelFeature.includes('text_to_video') ||
-      mid.includes('video')
-    )
-
-    console.log(`  判断结果:`, {
-      isTextToImageSignal,
-      isImageInputSignal,
-      isTextToVideoSignal,
-      source
-    })
-
-    const isDigitalHumanSignal = (
-      model._isVoice ||
-      source === 'voices' ||
-      desc.includes('digital_human') ||
-      desc.includes('数字人') ||
-      desc.includes('voice') ||
-      desc.includes('音色') ||
-      desc.includes('tts') ||
-      desc.includes('text_to_speech') ||
-      desc.includes('speech') ||
-      desc.includes('talking_head') ||
-      desc.includes('avatar') ||
-      name.includes('voice') ||
-      name.includes('digital') ||
-      mid.includes('voice') ||
-      modelFeature.includes('digital_human') ||
-      modelFeature.includes('tts') ||
-      modelFeature.includes('voice')
-    )
-
-    console.log(`  数字人判断:`, { isDigitalHumanSignal, _isVoice: model._isVoice })
-
-    if (isDigitalHumanSignal) {
-      console.log(`  → 归类到: digitalHuman (数字人/音色)`)
-      result.digitalHuman.push({
-        ...model,
-        inputType: 'audio',
-        categoryLabel: '音频输入',
-        _isDigitalHuman: true
-      })
-    } else if ((source === 'video_models') || (isTextToVideoSignal && !isTextToImageSignal)) {
-      const finalInputType = isImageInputSignal ? 'image' : 'text'
-      const finalLabel = isImageInputSignal ? '图片输入' : '文本输入'
-      console.log(`  → 归类到: video (${finalLabel})`)
-      result.video.push({
-        ...model,
-        inputType: finalInputType,
-        categoryLabel: finalLabel
-      })
-    } else {
-      const finalInputType = isImageInputSignal ? 'image' : 'text'
-      const finalLabel = isImageInputSignal ? '图片输入' : '文本输入'
-      console.log(`  → 归类到: image (${finalLabel})`)
-      result.image.push({
-        ...model,
-        inputType: finalInputType,
-        categoryLabel: finalLabel
-      })
-    }
-  })
-
-  console.log('📊 模型分类完成:', {
+  console.log('📊 模型分类完成（使用后端分类）:', {
     图片生成: result.image.length,
     视频生成: result.video.length,
     数字人: result.digitalHuman.length
@@ -1025,7 +1208,14 @@ function handleUploadType(fileType) {
 function removeUploadedFile(index) {
   const removed = uploadedFiles.value.splice(index, 1)[0]
   console.log(`🗑️ 已删除文件: ${removed.name}`)
-  
+
+  if (removed && removed.object_id) {
+    const relatedRefs = referencedFiles.value.filter(r => r.sourceId === removed.object_id)
+    relatedRefs.forEach(ref => {
+      removeAtTag(ref.atId)
+    })
+  }
+
   nextTick(() => {
     if (window.lucide) lucide.createIcons()
   })
@@ -1034,6 +1224,433 @@ function removeUploadedFile(index) {
 function getFileTypeLabel(type) {
   const labels = { image: '图片', video: '视频', audio: '音频' }
   return labels[type] || type
+}
+
+const filteredCloudFiles = computed(() => {
+  let files = cloudLibraryFiles.value
+
+  if (cloudActiveTab.value !== 'all') {
+    files = files.filter(f => f.type === cloudActiveTab.value)
+  }
+
+  if (cloudSearchKeyword.value.trim()) {
+    const keyword = cloudSearchKeyword.value.toLowerCase()
+    files = files.filter(f =>
+      f.name.toLowerCase().includes(keyword)
+    )
+  }
+
+  return files
+})
+
+function openCloudLibrary() {
+  isUploadDropdownOpen.value = false
+  showCloudLibrary.value = true
+  selectedCloudFiles.value = []
+  cloudSearchKeyword.value = ''
+  cloudActiveTab.value = 'all'
+  document.body.style.overflow = 'hidden'
+
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
+function closeCloudLibrary() {
+  showCloudLibrary.value = false
+  selectedCloudFiles.value = []
+  document.body.style.overflow = ''
+}
+
+function isCloudFileSelected(file) {
+  return selectedCloudFiles.value.some(f => f.id === file.id)
+}
+
+function toggleCloudFileSelection(file) {
+  const index = selectedCloudFiles.value.findIndex(f => f.id === file.id)
+
+  if (index > -1) {
+    selectedCloudFiles.value.splice(index, 1)
+  } else {
+    selectedCloudFiles.value.push(file)
+  }
+}
+
+function formatCloudFileSize(bytes) {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+async function confirmCloudSelection() {
+  if (selectedCloudFiles.value.length === 0) return
+
+  for (const file of selectedCloudFiles.value) {
+    const objectId = `${file.type}_${uploadedFiles.value.length + 1}`
+
+    let fileUrl = file.url
+
+    if (!fileUrl && file.thumbnail && file.type === 'image') {
+      try {
+        const response = await fetch(file.thumbnail)
+        const blob = await response.blob()
+        fileUrl = await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = (e) => resolve(e.target.result)
+          reader.readAsDataURL(blob)
+        })
+      } catch (error) {
+        console.warn('无法加载云文件:', file.name, error)
+        fileUrl = file.thumbnail
+      }
+    }
+
+    uploadedFiles.value.push({
+      type: file.type,
+      url: fileUrl,
+      purpose: 'reference',
+      object_id: objectId,
+      name: file.name,
+      fromCloud: true,
+      cloudId: file.id
+    })
+
+    console.log(`☁️ 已从云资料库选择: ${file.name} (${file.type}, ID: ${objectId})`)
+  }
+
+  const typeLabels = { image: '图片', video: '视频', audio: '音频' }
+  showToast(`已从云资料库添加 ${selectedCloudFiles.value.length} 个文件`, 'success')
+
+  closeCloudLibrary()
+
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+
+  setTimeout(() => {
+    console.log('📁 当前已上传文件（含云资料库）:', uploadedFiles.value.length, '个')
+  }, 500)
+}
+
+function onPromptInput(e) {
+  const editor = e.target
+  const text = editor.innerText || ''
+  if (text.length <= 2000) {
+    prompt.value = text
+  } else {
+    editor.innerText = text.slice(0, 2000)
+    prompt.value = text.slice(0, 2000)
+  }
+
+  checkAtMention(e)
+}
+
+function onPromptKeydown(e) {
+  if (showAtMentionDropdown.value) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      activeMentionIndex.value = Math.min(activeMentionIndex.value + 1, atMentionCandidates.value.length - 1)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      activeMentionIndex.value = Math.max(activeMentionIndex.value - 1, 0)
+    } else if (e.key === 'Escape') {
+      closeMentionDropdown()
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      const candidate = atMentionCandidates.value[activeMentionIndex.value]
+      if (candidate) selectAtMention(candidate)
+    }
+    return
+  }
+
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    handleGenerate()
+    return
+  }
+
+  if (e.key === '@') {
+    nextTick(() => checkAtMention(e))
+  }
+}
+
+function checkAtMention(e) {
+  const editor = promptEditorRef.value
+  if (!editor) return
+
+  const selection = window.getSelection()
+  if (!selection.rangeCount || !editor.contains(selection.anchorNode)) {
+    closeMentionDropdown()
+    return
+  }
+
+  const range = selection.getRangeAt(0)
+  const textBeforeCaret = getTextBeforeCursor(editor, range)
+
+  const atMatch = textBeforeCaret.match(/@(\w*)$/)
+
+  if (atMatch && atMentionCandidates.value.length > 0) {
+    mentionAnchorRange = range.cloneRange()
+    mentionAnchorRange.setStart(range.startContainer, range.startOffset - atMatch[0].length)
+
+    const rect = range.getBoundingClientRect()
+    const wrapperRect = editorWrapperRef.value?.getBoundingClientRect()
+
+    showAtMentionDropdown.value = true
+    activeMentionIndex.value = 0
+    mentionDropdownStyle.value = {
+      position: 'fixed',
+      top: `${rect.bottom + 6}px`,
+      left: `${Math.max(rect.left, wrapperRect?.left || rect.left)}px`,
+      minWidth: `${Math.min(320, wrapperRect?.width || 320)}px`,
+      zIndex: 9999
+    }
+
+    nextTick(() => {
+      if (window.lucide) lucide.createIcons()
+    })
+  } else {
+    closeMentionDropdown()
+  }
+}
+
+function getTextBeforeCursor(editor, range) {
+  const container = range.startContainer
+  const offset = range.startOffset
+
+  if (container.nodeType === Node.TEXT_NODE) {
+    let text = container.textContent.slice(0, offset)
+    let node = container
+    while ((node = node.previousSibling)) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text = node.textContent + text
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        text = node.textContent + text
+      }
+    }
+    let parent = container.parentNode
+    while (parent && parent !== editor) {
+      let prev = parent.previousSibling
+      while (prev) {
+        text = prev.textContent + text
+        prev = prev.previousSibling
+      }
+      parent = parent.parentNode
+    }
+    return text
+  }
+
+  if (container === editor || editor.contains(container)) {
+    let text = ''
+    const children = Array.from(container.childNodes).slice(0, offset)
+    for (const child of children) {
+      text += child.textContent
+    }
+    let parent = container.parentNode
+    while (parent && parent !== editor) {
+      let prev = parent.previousSibling
+      while (prev) {
+        text = prev.textContent + text
+        prev = prev.previousSibling
+      }
+      parent = parent.parentNode
+    }
+    return text
+  }
+
+  return ''
+}
+
+function closeMentionDropdown() {
+  showAtMentionDropdown.value = false
+  mentionAnchorRange = null
+  activeMentionIndex.value = 0
+}
+
+function selectAtMention(file) {
+  const editor = promptEditorRef.value
+  if (!editor) { closeMentionDropdown(); return }
+
+  if (mentionAnchorRange) {
+    try {
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(mentionAnchorRange)
+      mentionAnchorRange.deleteContents()
+    } catch (_) {}
+  }
+
+  createReferenceFrom(file)
+  closeMentionDropdown()
+
+  nextTick(() => {
+    editor.focus()
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
+function createReferenceFrom(file) {
+  const existingRef = referencedFiles.value.find(r => r.sourceId === file.object_id)
+  if (existingRef) {
+    showToast('该素材已被引用', 'info')
+    return
+  }
+
+  const typeKey = file.type === 'video' ? '视频' : '图片'
+  const counter = file.type === 'video' ? ++atVideoCounter : ++atImageCounter
+  const atLabel = `${typeKey}${counter}`
+  const atId = `at_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+
+  const refEntry = {
+    ...file,
+    atId,
+    atLabel,
+    atTag: `@${atLabel}`,
+    sourceId: file.object_id,
+  }
+  referencedFiles.value.push(refEntry)
+
+  const newAtTag = {
+    id: atId,
+    type: file.type,
+    label: atLabel,
+    fullTag: `@${atLabel}`,
+    refEntry
+  }
+  atTags.value.push(newAtTag)
+
+  insertAtTagToPrompt(newAtTag)
+  console.log(`📌 已引用素材: @${atLabel} (${file.type})`)
+}
+
+let draggedFile = null
+let draggedIndex = -1
+let draggedSource = ''
+
+function onDragStart(file, index, source) {
+  draggedFile = file
+  draggedIndex = index
+  draggedSource = source
+}
+
+function onDragEnd() {
+  draggedFile = null
+  draggedIndex = -1
+  draggedSource = ''
+}
+
+function clickToReference(file) {
+  createReferenceFrom(file)
+}
+
+function insertAtTagToPrompt(tag) {
+  const editor = promptEditorRef.value
+  if (!editor) return
+
+  const iconSvg = tag.type === 'video'
+    ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+    : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
+
+  const innerHtml = `${iconSvg}<span class="at-tag-text">${tag.fullTag}</span><button class="at-tag-close" data-at-id="${tag.id}" title="移除引用"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`
+
+  const selection = window.getSelection()
+
+  if (selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+    const range = selection.getRangeAt(0)
+    const span = document.createElement('span')
+    span.className = `at-tag-inline at-tag-${tag.type}`
+    span.contentEditable = 'false'
+    span.dataset.atId = tag.id
+    span.innerHTML = innerHtml
+    range.insertNode(span)
+    range.setStartAfter(span)
+    range.collapse(true)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  } else {
+    editor.innerHTML += `<span class="at-tag-inline at-tag-${tag.type}" contenteditable="false" data-at-id="${tag.id}">${innerHtml}</span>&nbsp;`
+  }
+
+  activeAtTagId.value = tag.id
+  prompt.value = editor.innerText
+
+  nextTick(() => bindInlineCloseButtons())
+}
+
+function bindInlineCloseButtons() {
+  const editor = promptEditorRef.value
+  if (!editor) return
+  editor.querySelectorAll('.at-tag-close').forEach(btn => {
+    if (btn._bound) return
+    btn._bound = true
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      const atId = btn.dataset.atId
+      if (atId) removeAtTag(atId)
+    })
+  })
+}
+
+function focusAtTag(tag) {
+  activeAtTagId.value = tag.id
+  const editor = promptEditorRef.value
+  if (!editor) return
+  const el = editor.querySelector(`[data-at-id="${tag.id}"]`)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    el.classList.add('at-tag-highlight')
+    setTimeout(() => el.classList.remove('at-tag-highlight'), 1500)
+  }
+}
+
+function focusAtTagById(atId) {
+  const tag = atTags.value.find(t => t.id === atId)
+  if (tag) focusAtTag(tag)
+}
+
+function removeAtTag(atId) {
+  const tagIdx = atTags.value.findIndex(t => t.id === atId)
+  if (tagIdx !== -1) atTags.value.splice(tagIdx, 1)
+
+  const refIdx = referencedFiles.value.findIndex(r => r.atId === atId)
+  if (refIdx !== -1) referencedFiles.value.splice(refIdx, 1)
+
+  const editor = promptEditorRef.value
+  if (editor) {
+    const el = editor.querySelector(`[data-at-id="${atId}"]`)
+    if (el) el.remove()
+    prompt.value = editor.innerText
+  }
+
+  if (activeAtTagId.value === atId) activeAtTagId.value = null
+
+  recalcCounters()
+
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
+function recalcCounters() {
+  let maxVideo = 0
+  let maxImage = 0
+  for (const t of atTags.value) {
+    if (t.type === 'video') {
+      const n = parseInt(t.label.replace('视频', ''), 10) || 0
+      if (n > maxVideo) maxVideo = n
+    } else if (t.type === 'image') {
+      const n = parseInt(t.label.replace('图片', ''), 10) || 0
+      if (n > maxImage) maxImage = n
+    }
+  }
+  atVideoCounter = maxVideo
+  atImageCounter = maxImage
+}
+
+function removeReferencedFile(atId) {
+  removeAtTag(atId)
 }
 
 function addFileFromHistory(fileData) {
@@ -1101,35 +1718,65 @@ function buildGenerateRequest() {
     ? currentModel.id
     : currentModel.name
 
+  const hasAtReferences = referencedFiles.value.length > 0
+
+  let allInputFiles
+  if (hasAtReferences) {
+    allInputFiles = referencedFiles.value.map(ref => ({
+      type: ref.type,
+      url: ref.url,
+      purpose: 'reference',
+      object_id: ref.object_id || String(ref.sourceId || '')
+    }))
+  } else {
+    allInputFiles = [...uploadedFiles.value]
+  }
+
   let feature = selectedFeature.value || 'text_to_video'
   if (!feature || feature === '') {
     if (outputType === 'image') {
-      feature = uploadedFiles.value.length > 0 ? 'image_reference' : 'text_to_image'
+      feature = allInputFiles.length > 0 ? 'image_reference' : 'text_to_image'
     } else if (outputType === 'digital_human') {
       feature = 'digital_human'
     } else {
-      feature = uploadedFiles.value.length === 0 ? 'text_to_video'
-        : uploadedFiles.value.length === 1 ? 'global_reference'
+      feature = allInputFiles.length === 0 ? 'text_to_video'
+        : allInputFiles.length === 1 ? 'global_reference'
         : 'multi_reference'
     }
   }
 
-  if (outputType === 'video' && uploadedFiles.value.length >= 2) {
+  if (outputType === 'video' && allInputFiles.length >= 2) {
     feature = 'multi_reference'
   }
 
+  let finalPrompt = String(prompt.value || '').trim()
+  if (referencedFiles.value.length > 0 && finalPrompt.includes('@')) {
+    const tagToObjectId = {}
+    for (const ref of referencedFiles.value) {
+      const tag = String(ref.atTag || '')
+      const oid = String(ref.object_id || '')
+      if (tag && oid) {
+        tagToObjectId[tag] = oid
+      }
+    }
+    finalPrompt = finalPrompt.replace(/@\S+/g, (match) => {
+      const replacement = tagToObjectId[match]
+      return replacement ? `<<<${replacement}>>>` : match
+    })
+  }
+
   const request = {
-    output_type: outputType,
-    model: submitModelValue,
-    vendor: currentModel.vendor || 'vendor_a',
-    feature: feature,
+    output_type: String(outputType || 'image'),
+    model: String(submitModelValue || ''),
+    vendor: String(currentModel.vendor || currentModel?.vendor || 'vendor_a'),
+    feature: String(feature || 'text_to_video'),
     parameters: {},
-    prompt: prompt.value.trim(),
-    input_files: uploadedFiles.value.map((f, index) => ({
-      type: f.type,
-      url: f.url,
-      purpose: f.purpose,
-      object_id: f.object_id
+    prompt: finalPrompt,
+    input_files: allInputFiles.map((f) => ({
+      type: String(f.type || 'image'),
+      url: String(f.url || ''),
+      purpose: String(f.purpose || 'reference'),
+      object_id: String(f.object_id || `file_${f.type}_${Math.random().toString(36).slice(2, 6)}`)
     }))
   }
 
@@ -1143,7 +1790,8 @@ function buildGenerateRequest() {
     request.parameters = {
       resolution: params.resolution,
       duration: 5,
-      ratio: params.ratio
+      ratio: params.ratio,
+      sound: videoSoundEnabled.value
     }
   } else if (outputType === 'digital_human') {
     request.parameters = {
@@ -1272,7 +1920,8 @@ async function handleGenerate() {
   isGenerating.value = true
 
   try {
-    const requestBody = buildGenerateRequest()
+    let requestBody = buildGenerateRequest()
+    requestBody = JSON.parse(JSON.stringify(requestBody))
 
     const totalSize = JSON.stringify(requestBody).length
     let timeoutMs = 360000
@@ -1311,7 +1960,13 @@ async function handleGenerate() {
     }
 
     prompt.value = ''
+    if (promptEditorRef.value) promptEditorRef.value.innerHTML = ''
     uploadedFiles.value = []
+    referencedFiles.value = []
+    atTags.value = []
+    activeAtTagId.value = null
+    atVideoCounter = 0
+    atImageCounter = 0
     selectedFeature.value = ''
 
     scrollToCanvasBottom()
@@ -1727,6 +2382,44 @@ function handleClickOutside(event) {
 .char-count {
   font-size: 11px;
   color: #9ca3af;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sound-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sound-toggle-btn:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.sound-toggle-btn.active {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: white;
+}
+
+.sound-toggle-btn.active:hover {
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .uploaded-files-preview {
@@ -2405,6 +3098,352 @@ function handleClickOutside(event) {
     order: 2;
   }
 }
+
+/* ========== @提及 & 媒体素材栏样式 ========== */
+
+.prompt-editor-wrapper {
+  position: relative;
+}
+
+.prompt-input[contenteditable="true"] {
+  width: 100%;
+  border: none;
+  resize: none;
+  font-size: 13.5px;
+  line-height: 1.6;
+  outline: none;
+  font-family: inherit;
+  color: #111827;
+  background: transparent;
+  min-height: 80px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.prompt-input[contenteditable="true"]:empty::before {
+  content: attr(placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* ====== @提及下拉列表 ====== */
+.at-mention-dropdown {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: mentionFadeIn 0.15s ease-out;
+}
+
+@keyframes mentionFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.at-mention-header {
+  padding: 10px 14px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.at-mention-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 8px;
+}
+
+.at-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.at-mention-item:hover,
+.at-mention-item.active {
+  background: #f0f4ff;
+}
+.at-mention-item.active {
+  box-shadow: inset 0 0 0 2px #6366f1;
+}
+
+.mention-thumb-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mention-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mention-thumb.audio-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #6366f1;
+}
+
+.mention-type-icon {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.65);
+  color: white;
+}
+.mention-type-icon.video { background: rgba(190, 24, 93, 0.85); }
+.mention-type-icon.image { background: rgba(29, 78, 216, 0.85); }
+
+.mention-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mention-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mention-type-label {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.at-mention-empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* ====== 媒体素材栏（单行流式布局）===== */
+.media-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+  min-height: 96px;
+}
+
+.media-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.media-items-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.media-bar-divider {
+  width: 1px;
+  min-height: 80px;
+  align-self: stretch;
+  background: #e5e7eb;
+  border-radius: 1px;
+  margin: 22px 0 0 0;
+  flex-shrink: 0;
+}
+
+.ref-section .section-count {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.media-item {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.media-item .preview-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.draggable-item {
+  cursor: pointer;
+}
+.draggable-item:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
+}
+
+.drag-hint-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(99, 102, 241, 0.88);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  z-index: 5;
+}
+.draggable-item:hover .drag-hint-overlay { display: flex; }
+
+.ref-item {
+  border-color: #c7d2fe;
+  cursor: pointer;
+}
+.ref-item.active {
+  border-color: #6366f1;
+  border-style: solid;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+.ref-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.ref-at-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 3px 0;
+  background: linear-gradient(to top, rgba(99, 102, 241, 0.92), rgba(99, 102, 241, 0.7));
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.remove-ref-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s ease;
+  z-index: 10;
+}
+.ref-item:hover .remove-ref-btn { opacity: 1; }
+.remove-ref-btn:hover { background: #dc2626; transform: scale(1.1); }
+
+.audio-preview {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #6366f1;
+  font-size: 9px;
+  padding: 4px;
+  text-align: center;
+  word-break: break-all;
+}
+
+.remove-file-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s ease;
+  z-index: 10;
+}
+.uploaded-file-item:hover .remove-file-btn,
+.draggable-item:hover .remove-file-btn { opacity: 1; }
+.remove-file-btn:hover { background: rgba(37, 99, 235, 1); transform: scale(1.1); }
+
+.file-type-badge {
+  position: absolute;
+  bottom: 3px;
+  left: 3px;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 4px;
+}
 </style>
 
 <style>
@@ -2456,5 +3495,426 @@ function handleClickOutside(event) {
   color: #3b82f6;
   font-weight: 600;
   border-left-color: #3b82f6;
+}
+
+/* ====== 输入框内 @标签徽章样式（全局，因由JS动态创建） ====== */
+.at-tag-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 7px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 2px;
+  vertical-align: middle;
+  cursor: default;
+  transition: all 0.18s ease;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.at-tag-inline:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.at-tag-inline.at-tag-video {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+  color: #be185d;
+  border: 1.5px solid #f9a8d4;
+}
+.at-tag-inline.at-tag-image {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1d4ed8;
+  border: 1.5px solid #93c5fd;
+}
+.at-tag-text { letter-spacing: 0.2px; }
+.at-tag-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 1px;
+  margin-right: -2px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  opacity: 0.45;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.at-tag-close:hover { opacity: 1; background: rgba(0,0,0,0.12); }
+.at-tag-inline.at-tag-video .at-tag-close:hover { background: rgba(190, 24, 93, 0.15); }
+.at-tag-inline.at-tag-image .at-tag-close:hover { background: rgba(29, 78, 216, 0.15); }
+.at-tag-inline.at-tag-highlight { animation: atPulse 1s ease-in-out; }
+@keyframes atPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+}
+
+/* 云资料库选择弹窗样式 */
+.cloud-library-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  animation: cloudModalFadeIn 0.2s ease-out;
+}
+
+@keyframes cloudModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cloud-library-modal {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: cloudModalSlideUp 0.3s ease-out;
+}
+
+@keyframes cloudModalSlideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.cloud-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cloud-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.cloud-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.cloud-modal-close:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.cloud-search-bar {
+  margin: 16px 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.cloud-search-bar:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: white;
+}
+
+.cloud-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #374151;
+}
+
+.cloud-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.cloud-filter-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.cloud-tab {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.cloud-tab:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.cloud-tab.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.cloud-files-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+
+.cloud-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+}
+
+.cloud-empty-state p {
+  margin: 16px 0 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.cloud-empty-hint {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.cloud-files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.cloud-file-item {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.cloud-file-item:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.cloud-file-item.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.cloud-file-thumb {
+  width: 100%;
+  height: 120px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cloud-file-thumb img,
+.cloud-video-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cloud-file-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #d1d5db;
+}
+
+.placeholder-audio {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.placeholder-video {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.cloud-selected-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  animation: checkPop 0.2s ease-out;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.cloud-file-info {
+  padding: 10px 12px;
+}
+
+.cloud-file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin: 0 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-file-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.cloud-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0 0 16px 16px;
+}
+
+.cloud-selection-info {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.cloud-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.cloud-btn-secondary,
+.cloud-btn-primary {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cloud-btn-secondary {
+  background: white;
+  border: 1.5px solid #d1d5db;
+  color: #6b7280;
+}
+
+.cloud-btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.cloud-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+.cloud-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.45);
+}
+
+.cloud-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 上传菜单增强样式 */
+.upload-menu-section {
+  padding: 4px 0;
+}
+
+.upload-section-title {
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upload-menu-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 12px;
+}
+
+.cloud-option {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #2563eb !important;
+  font-weight: 500 !important;
+}
+
+.cloud-option:hover {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
 }
 </style>

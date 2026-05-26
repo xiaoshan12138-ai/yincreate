@@ -58,6 +58,12 @@ const router = createRouter({
       component: () => import('../views/SettingsView.vue'),
       meta: { title: '设置', requiresAuth: true }
     },
+    {
+      path: '/test',
+      name: 'test',
+      component: () => import('../views/TestView.vue'),
+      meta: { title: '模型测试', requiresAuth: true }
+    },
 
     // 企业管理子路由
     {
