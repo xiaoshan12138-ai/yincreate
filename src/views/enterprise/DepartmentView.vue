@@ -55,6 +55,14 @@
         </div>
       </div>
 
+      <!-- 项目标题栏 -->
+      <ProjectHeaderBar
+        title="部门管理"
+        subtitle="管理企业组织架构，查看各部门配额与使用情况"
+        add-label="新增部门"
+        @add="openAddDeptModal"
+      />
+
       <!-- 部门列表 -->
       <div class="search-action-bar">
         <div class="table-header-row">
@@ -205,6 +213,46 @@
           </div>
         </div>
       </Teleport>
+
+      <!-- 新增部门弹窗 -->
+      <Teleport to="body">
+        <div v-if="showAddDept" class="modal-overlay" @click.self="closeAddDeptModal">
+          <div class="modal-container-add">
+            <div class="modal-header">
+              <h3 class="modal-title">新增部门</h3>
+              <button class="modal-close-btn" @click="closeAddDeptModal">
+                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label">部门名称</label>
+                <input type="text" v-model="addDeptForm.name" placeholder="请输入部门名称" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">上级部门</label>
+                <select v-model="addDeptForm.parent" class="form-select">
+                  <option value="-">无（顶级部门）</option>
+                  <option>公司</option>
+                  <option>漫剧部</option>
+                  <option>电商部</option>
+                  <option>漫剧1组</option>
+                  <option>漫剧2组</option>
+                  <option>电商1组</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">初始配额(¥)</label>
+                <input type="number" v-model="addDeptForm.allocated" placeholder="请输入配额金额" class="form-input">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-cancel" @click="closeAddDeptModal">取消</button>
+              <button class="btn-submit" @click="submitAddDept">确认添加</button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </AppLayout>
 </template>
@@ -213,10 +261,11 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import ProjectHeaderBar from '../../components/enterprise/ProjectHeaderBar.vue'
 
 const router = useRouter()
 
-const tabs = ['概览', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
+const tabs = ['概览', '额度分配', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
 const activeTab = ref('部门管理')
 const searchQuery = ref('')
 const currentPage = ref(1)
@@ -259,6 +308,7 @@ const selectTab = (tab) => {
   activeTab.value = tab
   const routeMap = {
     '概览': '/enterprise/bi',
+    '额度分配': '/enterprise/quota',
     '账号管理': '/enterprise/member',
     '人员管理': '/enterprise/personnel',
     '部门管理': '/enterprise/department',
@@ -291,6 +341,37 @@ const viewDetail = (dept) => {
 
 const showDetail = ref(false)
 const selectedDept = ref(null)
+
+const showAddDept = ref(false)
+const addDeptForm = ref({ name: '', parent: '-', allocated: '' })
+
+const openAddDeptModal = () => {
+  addDeptForm.value = { name: '', parent: '-', allocated: '' }
+  showAddDept.value = true
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
+const closeAddDeptModal = () => {
+  showAddDept.value = false
+}
+
+const submitAddDept = () => {
+  if (!addDeptForm.value.name.trim()) return
+  const newId = Math.max(...departments.value.map(d => d.id)) + 1
+  const allocated = addDeptForm.value.allocated ? parseInt(addDeptForm.value.allocated) : 0
+  departments.value.push({
+    id: newId,
+    name: addDeptForm.value.name,
+    parent: addDeptForm.value.parent,
+    accounts: [],
+    allocated: allocated,
+    used: 0,
+    remaining: allocated
+  })
+  showAddDept.value = false
+}
 
 const closeDetail = () => {
   showDetail.value = false
@@ -752,4 +833,102 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-container-add {
+  background: #fff;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modal-close-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: 8px;
+  cursor: pointer; color: #6b7280; transition: all 0.2s ease;
+}
+.modal-close-btn:hover { background: #f3f4f6; color: #111827; }
+
+.modal-body { padding: 24px; }
+
+.form-group { margin-bottom: 18px; }
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.form-select, .form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.form-select:focus, .form-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel {
+  padding: 9px 20px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-cancel:hover { background: #e5e7eb; }
+
+.btn-submit {
+  padding: 9px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.btn-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
 </style>

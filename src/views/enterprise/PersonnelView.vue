@@ -217,10 +217,12 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import { useEnterpriseStore } from '../../stores/enterprise'
 
 const router = useRouter()
+const enterpriseStore = useEnterpriseStore()
 
-const tabs = ['概览', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
+const tabs = ['概览', '额度分配', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
 const activeTab = ref('人员管理')
 const searchKeyword = ref('')
 const departmentFilter = ref('全部')
@@ -230,23 +232,17 @@ const pageSize = ref(10)
 const showDetailModal = ref(false)
 const selectedPerson = ref(null)
 
-const stats = ref({
-  total: 42,
-  active: 38,
-  inactive: 3,
-  pending: 1
+const stats = computed(() => {
+  const list = enterpriseStore.personnelList
+  return {
+    total: list.length,
+    active: list.length - 3,
+    inactive: 3,
+    pending: 1
+  }
 })
 
-const personnel = ref([
-  { personId: 'P001', name: '王开发', department: '公司', accountId: 101, allocated: 50000, used: 32000, remaining: 18000, expired: 0, video: 12, image: 8, text: 45, audio: 3, avatar: 2 },
-  { personId: 'P002', name: '赵老板', department: '公司', accountId: 102, allocated: 100000, used: 80000, remaining: 15000, expired: 5000, video: 28, image: 15, text: 60, audio: 8, avatar: 5 },
-  { personId: 'P003', name: '杜总', department: '漫剧部', accountId: 103, allocated: 80000, used: 55000, remaining: 22000, expired: 3000, video: 35, image: 20, text: 80, audio: 6, avatar: 4 },
-  { personId: 'P004', name: '刘总', department: '漫剧部', accountId: 104, allocated: 75000, used: 60000, remaining: 12000, expired: 3000, video: 22, image: 18, text: 55, audio: 10, avatar: 6 },
-  { personId: 'P005', name: '张经理', department: '电商部', accountId: 105, allocated: 60000, used: 42000, remaining: 16000, expired: 2000, video: 18, image: 30, text: 40, audio: 4, avatar: 3 },
-  { personId: 'P006', name: '马经理', department: '电商部', accountId: 106, allocated: 55000, used: 38000, remaining: 15000, expired: 2000, video: 15, image: 25, text: 35, audio: 3, avatar: 2 },
-  { personId: 'P007', name: '小关', department: '漫剧1组', accountId: 107, allocated: 40000, used: 35000, remaining: 3000, expired: 2000, video: 20, image: 12, text: 50, audio: 5, avatar: 3 },
-  { personId: 'P008', name: '小李', department: '漫剧1组', accountId: 108, allocated: 35000, used: 28000, remaining: 5000, expired: 2000, video: 16, image: 10, text: 42, audio: 4, avatar: 2 }
-])
+const personnel = computed(() => enterpriseStore.personnelList)
 
 const filteredPersonnel = computed(() => {
   let result = personnel.value
@@ -274,6 +270,7 @@ const selectTab = (tab) => {
   activeTab.value = tab
   const routeMap = {
     '概览': '/enterprise/bi',
+    '额度分配': '/enterprise/quota',
     '账号管理': '/enterprise/member',
     '人员管理': '/enterprise/personnel',
     '部门管理': '/enterprise/department',

@@ -72,6 +72,12 @@ const router = createRouter({
       meta: { title: '企业仪表盘', requiresAuth: true }
     },
     {
+      path: '/enterprise/quota',
+      name: 'enterprise-quota',
+      component: () => import('../views/enterprise/QuotaAllocationView.vue'),
+      meta: { title: '额度分配', requiresAuth: true }
+    },
+    {
       path: '/enterprise/department',
       name: 'enterprise-department',
       component: () => import('../views/enterprise/DepartmentView.vue'),

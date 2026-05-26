@@ -262,8 +262,7 @@ async function handleLogin() {
 
     userStore.setUser(mockUser)
 
-    const redirectPath = route.query.redirect || '/'
-    router.push(redirectPath)
+    router.push({ path: '/', query: { showRealNameTip: 'true' } })
   } catch (error) {
     console.error('登录失败:', error)
   } finally {
@@ -287,7 +286,7 @@ onMounted(() => {
 
 .login-brand {
   width: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  background: linear-gradient(135deg, #9db3f9 0%, #74aee1 50%, #0bacdd 100%);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -574,7 +573,7 @@ onMounted(() => {
 .submit-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #4fc3e7 0%, #404cf7 100%);
   color: white;
   border: none;
   border-radius: 12px;

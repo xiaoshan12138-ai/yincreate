@@ -1,5 +1,22 @@
 <template>
   <AppLayout>
+    <!-- 实名认证提示 -->
+    <Teleport to="body">
+      <div v-if="showRealNameTip" class="realname-tip-overlay" @click="closeRealNameTip">
+        <div class="realname-tip-modal" @click.stop>
+          <div class="tip-icon-wrap">
+            <i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: #f59e0b;"></i>
+          </div>
+          <h3 class="tip-title">账号暂未实名</h3>
+          <p class="tip-desc">请先完成实名认证，以享受完整服务！</p>
+          <div class="tip-actions">
+            <button class="btn-tip-close" @click="closeRealNameTip">稍后再说</button>
+            <button class="btn-tip-go" @click="goToProfile">去实名认证</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- 首页主容器 -->
     <div class="home-page">
       <!-- Hero 区域 - 主标题和CTA按钮 -->
@@ -147,12 +164,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/layout/AppLayout.vue'
 import { userData } from '../data/userData'
 import { videosData } from '../data/videosData'
 
+const route = useRoute()
+const router = useRouter()
+
 const activeTab = ref('推荐')
 const tabs = ['推荐', '最新', '热门', '关注']
+const showRealNameTip = ref(false)
 
 const quickStartCards = [
   { id: 1, title: '文本转视频', desc: '输入文本，AI生成视频', color: 'blue', icon: 'video', linkText: '去生成 →' },
@@ -172,7 +194,21 @@ onMounted(() => {
   if (window.lucide) {
     lucide.createIcons()
   }
+
+  if (route.query.showRealNameTip === 'true') {
+    showRealNameTip.value = true
+    router.replace({ query: {} })
+  }
 })
+
+const closeRealNameTip = () => {
+  showRealNameTip.value = false
+}
+
+const goToProfile = () => {
+  showRealNameTip.value = false
+  router.push('/profile')
+}
 </script>
 
 <style scoped>
@@ -699,5 +735,105 @@ onMounted(() => {
 .project-date {
   font-size: 9px;
   color: #9ca3af;
+}
+
+/* 实名认证提示框样式 */
+.realname-tip-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.realname-tip-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 36px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.tip-icon-wrap {
+  margin-bottom: 20px;
+  animation: bounceIn 0.5s ease;
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.tip-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.tip-desc {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.tip-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-tip-close,
+.btn-tip-go {
+  padding: 11px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-tip-close {
+  background: white;
+  border: 1.5px solid #d1d5db;
+  color: #6b7280;
+}
+
+.btn-tip-close:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-tip-go {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-tip-go:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 </style>

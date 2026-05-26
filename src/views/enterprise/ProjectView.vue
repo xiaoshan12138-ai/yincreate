@@ -238,7 +238,7 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 
 const router = useRouter()
 
-const tabs = ['概览', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
+const tabs = ['概览', '额度分配', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
 const activeTab = ref('项目管理')
 const searchKeyword = ref('')
 const departmentFilter = ref('全部')
@@ -290,6 +290,7 @@ const selectTab = (tab) => {
   activeTab.value = tab
   const routeMap = {
     '概览': '/enterprise/bi',
+    '额度分配': '/enterprise/quota',
     '账号管理': '/enterprise/member',
     '人员管理': '/enterprise/personnel',
     '部门管理': '/enterprise/department',

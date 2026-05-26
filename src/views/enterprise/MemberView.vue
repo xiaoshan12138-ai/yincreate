@@ -38,6 +38,14 @@
         </div>
       </div>
 
+      <!-- 项目标题栏 -->
+      <ProjectHeaderBar
+        title="账号管理"
+        subtitle="管理企业内所有账号的配额、状态与使用情况"
+        add-label="新增账号"
+        @add="openAddModal"
+      />
+
       <!-- 账号列表 -->
       <div class="search-action-bar">
         <div class="table-header-row">
@@ -254,10 +262,13 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import ProjectHeaderBar from '../../components/enterprise/ProjectHeaderBar.vue'
+import { useEnterpriseStore } from '../../stores/enterprise'
 
 const router = useRouter()
+const enterpriseStore = useEnterpriseStore()
 
-const tabs = ['概览', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
+const tabs = ['概览', '额度分配', '账号管理', '人员管理', '部门管理', '项目管理', '智能路由']
 const activeTab = ref('账号管理')
 const searchKeyword = ref('')
 const departmentFilter = ref('全部')
@@ -313,6 +324,7 @@ const selectTab = (tab) => {
   activeTab.value = tab
   const routeMap = {
     '概览': '/enterprise/bi',
+    '额度分配': '/enterprise/quota',
     '账号管理': '/enterprise/member',
     '人员管理': '/enterprise/personnel',
     '部门管理': '/enterprise/department',
@@ -402,6 +414,24 @@ const submitAddAccount = () => {
   })
   accountPool.value.allocated += 1
   accountPool.value.available = accountPool.value.total - accountPool.value.allocated - accountPool.value.recycled
+
+  const syncResult = enterpriseStore.syncAccountToPersonnel({
+    id: newId,
+    personName: addForm.value.personName,
+    department: addForm.value.department,
+    allocated: allocated
+  })
+  console.log(`📋 账号同步到人员管理: ${syncResult.action}`, syncResult.person)
+
+  const quotaResult = enterpriseStore.addAccountToQuotaList({
+    id: newId,
+    nature: addForm.value.nature,
+    personName: addForm.value.personName,
+    department: addForm.value.department,
+    allocated: allocated
+  })
+  console.log(`💰 账号同步到额度分配: ${quotaResult.action}`, quotaResult.quotaAccount)
+
   showAddModal.value = false
 }
 

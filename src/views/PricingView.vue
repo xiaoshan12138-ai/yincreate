@@ -651,12 +651,19 @@ onMounted(() => {
 }
 
 .points-balance-card,
-.faq-section,
+.faq-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+}
+
 .security-section {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 18px;
+  min-height: 407px;
 }
 
 .points-title,
