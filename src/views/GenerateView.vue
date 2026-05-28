@@ -83,6 +83,37 @@
                 </button>
               </div>
             </div>
+            <div v-if="selectedType === 'video'" class="param-group">
+              <label>视频时长</label>
+              <div
+                class="custom-select duration-dropdown"
+                :class="{ open: isDurationDropdownOpen }"
+                @click="toggleDurationDropdown"
+                ref="durationTriggerRef"
+              >
+                <div class="select-display">
+                  <span>{{ videoDuration }} 秒</span>
+                  <i data-lucide="chevron-down" style="width: 16px; height: 16px; transition: transform 0.2s;"></i>
+                </div>
+                <Teleport to="body">
+                  <div
+                    v-if="isDurationDropdownOpen"
+                    class="select-dropdown duration-dropdown-menu"
+                    :style="durationDropdownPos"
+                    @click.stop
+                  >
+                    <div
+                      v-for="dur in videoDurationOptions"
+                      :key="dur"
+                      :class="['select-option', { active: videoDuration === dur }]"
+                      @click="selectDuration(dur)"
+                    >
+                      {{ dur }} 秒
+                    </div>
+                  </div>
+                </Teleport>
+              </div>
+            </div>
           </div>
 
           <!-- 特色功能 -->
@@ -328,7 +359,7 @@
               <div class="footer-left">
                 <span class="char-count">{{ prompt.length }} / 2000</span>
                 <button
-                  v-if="selectedType === 'video'"
+                  v-if="showSoundToggle"
                   :class="['sound-toggle-btn', { active: videoSoundEnabled }]"
                   @click="videoSoundEnabled = !videoSoundEnabled"
                   :title="videoSoundEnabled ? '点击关闭声音' : '点击开启声音'"
@@ -338,6 +369,21 @@
                 </button>
               </div>
               <div class="input-actions">
+                <div class="price-badge" v-if="selectedType === 'image'">
+                  <i data-lucide="coins" style="width: 14px; height: 14px;"></i>
+                  <span class="price-amount">2.00</span>
+                  <span class="price-unit">元/张</span>
+                </div>
+                <div class="price-badge" v-else-if="selectedType === 'video'">
+                  <i data-lucide="coins" style="width: 14px; height: 14px;"></i>
+                  <span class="price-amount">5.00</span>
+                  <span class="price-unit">元/条</span>
+                </div>
+                <div class="price-badge" v-else-if="selectedType === 'digital-human'">
+                  <i data-lucide="coins" style="width: 14px; height: 14px;"></i>
+                  <span class="price-amount">10.00</span>
+                  <span class="price-unit">元/条</span>
+                </div>
                 <div class="upload-dropdown" :class="{ open: isUploadDropdownOpen }">
                   <button class="upload-btn" @click.stop="toggleUploadDropdown">
                     <i data-lucide="upload" style="width: 18px; height: 18px;"></i>
@@ -504,6 +550,14 @@
                             <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                             下载
                           </button>
+                          <button
+                            class="gallery-action-btn save-cloud-btn"
+                            @click="saveToCloudLibrary(result, idx)"
+                            title="保存到云资料库"
+                          >
+                            <i data-lucide="cloud-upload" style="width: 14px; height: 14px;"></i>
+                            保存到云资料库
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -633,13 +687,13 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import AppLayout from '../components/layout/AppLayout.vue'
 
-// const API_CONFIG = {
-//    BASE_URL: 'http://192.168.31.243:8003/api/v1'
-// }
 const API_CONFIG = {
-  //使用相对路径，自动匹配当前域名和端口
- BASE_URL: '/api/v1'
+   BASE_URL: 'http://192.168.31.243:8003/api/v1'
 }
+// const API_CONFIG = {
+//   //使用相对路径，自动匹配当前域名和端口
+//  BASE_URL: '/api/v1'
+// }
 
 const VENDOR_B_API_KEY = 'ErtveAQybj1XCVRsncebuiIYzTxUV0tganVf4bMijr5SKVzU'
 
@@ -803,7 +857,20 @@ function selectModel(model) {
 const selectedRatio = ref('16:9')
 const selectedQuality = ref('hd')
 const videoSoundEnabled = ref(false)
+const videoDuration = ref(5)
+const videoDurationOptions = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+const isDurationDropdownOpen = ref(false)
+const durationTriggerRef = ref(null)
+const durationDropdownPos = ref({})
 const isGenerating = ref(false)
+
+const showSoundToggle = computed(() => {
+  if (selectedType.value !== 'video') return false
+  const model = models.value.find(m => m.id === selectedModel.value)
+  if (!model) return false
+  const modelName = (model.name || model.id || '').toLowerCase()
+  return modelName.includes('kling') && modelName.includes('3.0') || modelName.includes('kling_3')
+})
 const isUploadDropdownOpen = ref(false)
 const generatedCards = ref([])
 const expandedCardId = ref(null)
@@ -1082,14 +1149,14 @@ function toggleFeatureDropdown() {
     nextTick(() => {
       if (featureTriggerRef.value) {
         const rect = featureTriggerRef.value.getBoundingClientRect()
-        const viewportHeight = window.innerHeight
         featureDropdownPos.value = {
           position: 'fixed',
           left: `${rect.left}px`,
           width: `${rect.width}px`,
-          top: `${rect.bottom + 4}px`,
+          top: 'auto',
+          bottom: `${window.innerHeight - rect.top + 4}px`,
           zIndex: 99999,
-          maxHeight: `${Math.min(400, viewportHeight - rect.bottom - 20)}px`
+          maxHeight: `${Math.min(400, rect.top - 20)}px`
         }
       }
     })
@@ -1099,6 +1166,36 @@ function toggleFeatureDropdown() {
 function selectFeature(feature) {
   selectedFeature.value = feature.id
   isFeatureDropdownOpen.value = false
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
+function toggleDurationDropdown() {
+  isDurationDropdownOpen.value = !isDurationDropdownOpen.value
+  if (isDurationDropdownOpen.value) {
+    isModelDropdownOpen.value = false
+    isFeatureDropdownOpen.value = false
+    nextTick(() => {
+      if (durationTriggerRef.value) {
+        const rect = durationTriggerRef.value.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+        durationDropdownPos.value = {
+          position: 'fixed',
+          left: `${rect.left}px`,
+          width: `${rect.width}px`,
+          top: `${rect.bottom + 4}px`,
+          zIndex: 99999,
+          maxHeight: `${Math.min(280, viewportHeight - rect.bottom - 20)}px`
+        }
+      }
+    })
+  }
+}
+
+function selectDuration(dur) {
+  videoDuration.value = dur
+  isDurationDropdownOpen.value = false
   nextTick(() => {
     if (window.lucide) lucide.createIcons()
   })
@@ -1702,6 +1799,36 @@ function downloadResult(result, index) {
   }
 }
 
+function saveToCloudLibrary(result, index) {
+  try {
+    const url = result.displayUrl || result.url
+    const timestamp = Date.now()
+    const fileType = result.type || 'image'
+    const extension = fileType === 'video' ? 'mp4' : 'png'
+    const fileName = fileType === 'video' ? `generated_video_${timestamp}.mp4` : `generated_image_${timestamp}.png`
+
+    const newFile = {
+      id: `cloud_gen_${timestamp}_${index}`,
+      name: fileName,
+      type: fileType,
+      thumbnail: fileType === 'image' ? convertBase64ToBlobUrl(url) : null,
+      url: url,
+      size: 0,
+      uploadTime: new Date().toISOString().split('T')[0]
+    }
+
+    cloudLibraryFiles.value.unshift(newFile)
+    showToast('已保存到云资料库', 'success')
+
+    nextTick(() => {
+      if (window.lucide) lucide.createIcons()
+    })
+  } catch (error) {
+    console.error('❌ 保存到云资料库失败:', error)
+    showToast('保存到云资料库失败，请重试', 'error')
+  }
+}
+
 function buildGenerateRequest() {
   const currentModel = models.value.find(m => m.id === selectedModel.value)
   if (!currentModel) {
@@ -1714,9 +1841,16 @@ function buildGenerateRequest() {
   else if (selectedType.value === 'digital-human') outputType = 'digital_human'
   else outputType = 'video'
 
-  const submitModelValue = currentModel.vendor === 'vendor_b'
-    ? currentModel.id
-    : currentModel.name
+  const submitModelValue = String(currentModel.id || '').trim()
+
+  console.log('🔍 模型信息调试:', {
+    selectedModel: selectedModel.value,
+    modelId: currentModel.id,
+    modelName: currentModel.name,
+    submitModelValue: submitModelValue,
+    id类型: typeof currentModel.id,
+    name类型: typeof currentModel.name
+  })
 
   const hasAtReferences = referencedFiles.value.length > 0
 
@@ -1789,7 +1923,7 @@ function buildGenerateRequest() {
   } else if (outputType === 'video') {
     request.parameters = {
       resolution: params.resolution,
-      duration: 5,
+      duration: videoDuration.value,
       ratio: params.ratio,
       sound: videoSoundEnabled.value
     }
@@ -2014,6 +2148,9 @@ function handleClickOutside(event) {
   if (!target.closest('.custom-select.feature-dropdown') && !target.closest('.feature-dropdown-menu')) {
     isFeatureDropdownOpen.value = false
   }
+  if (!target.closest('.custom-select.duration-dropdown') && !target.closest('.duration-dropdown-menu')) {
+    isDurationDropdownOpen.value = false
+  }
   if (!target.closest('.upload-dropdown') && !target.closest('.upload-menu')) {
     isUploadDropdownOpen.value = false
   }
@@ -2064,7 +2201,7 @@ function handleClickOutside(event) {
 }
 
 .panel-section {
-  margin-bottom: 18px;
+  margin-bottom: 10px;
   overflow: visible;
 }
 
@@ -2334,6 +2471,47 @@ function handleClickOutside(event) {
   background: #3b82f6;
 }
 
+.duration-dropdown {
+  overflow: visible !important;
+  z-index: 200;
+}
+
+.duration-dropdown.open .select-display {
+  border-radius: 8px 8px 0 0;
+}
+
+.duration-dropdown-menu {
+  position: fixed;
+  background: white;
+  border: 1.5px solid #3b82f6;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
+  overflow-y: auto;
+  animation: slideDown 0.2s ease-out;
+}
+
+.duration-dropdown-menu .select-option {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.duration-dropdown-menu .select-option:hover {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%);
+  color: #3b82f6;
+  padding-left: 16px;
+}
+
+.duration-dropdown-menu .select-option.active {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, transparent 100%);
+  color: #3b82f6;
+  font-weight: 600;
+  border-left-color: #3b82f6;
+}
+
 /* 自定义多选下拉框 - 特色功能（已移除，现使用单选模式） */
 
 .canvas-area {
@@ -2513,6 +2691,45 @@ function handleClickOutside(event) {
 .input-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.price-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1.5px solid #f59e0b;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+  white-space: nowrap;
+  animation: priceFadeIn 0.3s ease-out;
+}
+
+@keyframes priceFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.price-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.price-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: #a16207;
 }
 
 .upload-dropdown {
@@ -3068,6 +3285,16 @@ function handleClickOutside(event) {
   transform: scale(1.05);
 }
 
+.save-cloud-btn {
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+}
+
+.save-cloud-btn:hover {
+  background: rgba(37, 99, 235, 1);
+  transform: scale(1.05);
+}
+
 .no-result {
   text-align: center;
   padding: 18px;
@@ -3450,13 +3677,12 @@ function handleClickOutside(event) {
 .feature-dropdown-menu {
   background: white;
   border: 1.5px solid #3b82f6;
-  border-bottom: 1.5px solid #3b82f6;
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.18);
+  border-top: 1.5px solid #3b82f6;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -8px 24px rgba(59, 130, 246, 0.18);
   overflow-y: auto;
-  animation: featureSlideDown 0.25s ease-out;
-  margin-top: 4px;
+  animation: featureSlideUp 0.25s ease-out;
   position: fixed;
   top: auto;
   left: auto;
@@ -3464,10 +3690,10 @@ function handleClickOutside(event) {
   z-index: 99999;
 }
 
-@keyframes featureSlideDown {
+@keyframes featureSlideUp {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;

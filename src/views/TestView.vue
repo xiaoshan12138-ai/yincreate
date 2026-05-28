@@ -49,6 +49,27 @@
               </div>
             </div>
 
+            <!-- 视频时长选择（仅视频生成时显示） -->
+            <div class="param-group" v-if="selectedType === 'video'">
+              <label>⏱️ 视频时长（秒）</label>
+              <div class="duration-grid">
+                <label
+                  v-for="duration in videoDurations"
+                  :key="duration"
+                  :class="['duration-option', { selected: selectedVideoDuration === duration }]"
+                >
+                  <input
+                    type="radio"
+                    :value="duration"
+                    v-model="selectedVideoDuration"
+                    name="videoDuration"
+                    :disabled="isBatchTesting"
+                  />
+                  <span>{{ duration }}秒</span>
+                </label>
+              </div>
+            </div>
+
             <!-- 提示词 -->
             <div class="param-group">
               <label>统一提示词</label>
@@ -59,6 +80,57 @@
                 rows="3"
                 :disabled="isBatchTesting"
               ></textarea>
+            </div>
+
+            <!-- 图片上传 -->
+            <div class="param-group image-upload-section">
+              <label>📷 上传测试图片（可选）</label>
+              <p class="upload-hint">用于测试参考图、局部重绘、AI换脸等需要图片输入的功能</p>
+
+              <div v-if="uploadedTestImages.length === 0" class="upload-area" @click="triggerImageUpload">
+                <i data-lucide="upload-cloud"></i>
+                <span>点击或拖拽上传图片</span>
+                <small>支持 JPG、PNG、WebP 格式</small>
+              </div>
+
+              <div v-else class="uploaded-images-list">
+                <div
+                  v-for="(image, index) in uploadedTestImages"
+                  :key="index"
+                  class="uploaded-image-item"
+                >
+                  <img :src="image.previewUrl" alt="测试图片" />
+                  <div class="image-info">
+                    <span class="image-name">{{ image.name }}</span>
+                    <span class="image-size">{{ image.sizeText }}</span>
+                  </div>
+                  <button
+                    class="remove-image-btn"
+                    @click="removeTestImage(index)"
+                    title="移除图片"
+                  >
+                    <i data-lucide="x"></i>
+                  </button>
+                </div>
+
+                <button
+                  v-if="uploadedTestImages.length < 5"
+                  class="add-more-btn"
+                  @click="triggerImageUpload"
+                >
+                  <i data-lucide="plus"></i>
+                  继续添加
+                </button>
+              </div>
+
+              <input
+                ref="testImageInputRef"
+                type="file"
+                accept="image/*"
+                multiple
+                style="display: none;"
+                @change="handleTestImagesUpload"
+              />
             </div>
 
             <!-- 测试模式 -->
@@ -82,8 +154,41 @@
               </div>
               <div v-if="currentTestingModel" class="current-testing">
                 <i data-lucide="loader-2" class="spin-icon"></i>
-                正在测试: <strong>{{ currentTestingModel.name }}</strong>
-                ({{ currentResolution }})
+                <template v-if="isStopping">
+                  正在接收数据: <strong>{{ currentTestingModel.name }}</strong>
+                  ({{ currentResolution }}) - 等待完成后停止
+                </template>
+                <template v-else-if="isPaused">
+                  暂停于: <strong>{{ currentTestingModel.name }}</strong>
+                  ({{ currentResolution }}) - 当前任务完成后暂停
+                </template>
+                <template v-else>
+                  正在测试: <strong>{{ currentTestingModel.name }}</strong>
+                  ({{ currentResolution }})
+                </template>
+              </div>
+            </div>
+
+            <!-- 保存目录设置 -->
+            <div class="save-directory-section">
+              <label>📁 文件保存位置</label>
+              <div class="directory-selector">
+                <button
+                  class="select-directory-btn"
+                  @click="selectTestDirectory"
+                  :disabled="isBatchTesting"
+                >
+                  <i data-lucide="folder-open"></i>
+                  {{ testDirectoryHandle ? '更改目录' : '选择test文件夹' }}
+                </button>
+                <span v-if="testDirectoryHandle" class="directory-path">
+                  <i data-lucide="check-circle"></i>
+                  {{ testDirectoryHandle.name }}
+                </span>
+                <span v-else class="directory-hint">
+                  <i data-lucide="info"></i>
+                  未选择，文件将下载到浏览器默认目录
+                </span>
               </div>
             </div>
 
@@ -99,13 +204,13 @@
                 开始一键测试
               </button>
               <template v-else>
-                <button class="batch-btn pause" @click="pauseBatchTest">
+                <button class="batch-btn pause" @click="pauseBatchTest" :disabled="isStopping">
                   <i data-lucide="pause-circle"></i>
                   {{ isPaused ? '继续' : '暂停' }}
                 </button>
-                <button class="batch-btn stop" @click="stopBatchTest">
+                <button class="batch-btn stop" @click="stopBatchTest" :disabled="isStopping">
                   <i data-lucide="stop-circle"></i>
-                  停止
+                  {{ isStopping ? '停止中...' : '停止' }}
                 </button>
               </template>
             </div>
@@ -285,40 +390,6 @@
             </div>
           </div>
 
-          <!-- 价格总览表 -->
-          <div class="info-card">
-            <h3>💰 价格与性能对比表</h3>
-            <div class="price-overview">
-              <table class="comparison-table">
-                <thead>
-                  <tr>
-                    <th>模型名称</th>
-                    <th>厂商</th>
-                    <th v-for="res in selectedResolutions.length > 0 ? selectedResolutions : resolutions" :key="res">
-                      {{ res.toUpperCase() }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="model in filteredModels.slice(0, 10)" :key="model.id">
-                    <td class="model-cell">
-                      <strong>{{ model.name }}</strong>
-                    </td>
-                    <td>
-                      <span class="vendor-badge">{{ model.vendor_name }}</span>
-                    </td>
-                    <td v-for="res in selectedResolutions.length > 0 ? selectedResolutions : resolutions" :key="res" class="price-cell">
-                      <div class="price-info">
-                        <span class="cost">{{ getModelPrice(model, res).cost }}</span>
-                        <span class="time">{{ getModelPrice(model, res).time }}</span>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           <!-- 实时测试结果 -->
           <div class="info-card test-results">
             <h3>📊 实时测试结果 ({{ testResults.length }}条)</h3>
@@ -330,20 +401,30 @@
             </div>
 
             <div v-else class="results-list">
-              <div v-for="(result, index) in testResults" :key="index" :class="['result-item', result.status]">
-                <div class="result-header">
+              <div
+                v-for="(result, index) in testResults"
+                :key="index"
+                :class="['result-item', result.status, { expanded: expandedResults.includes(index) }]"
+              >
+                <div class="result-header" @click.stop="toggleResultExpand(index)">
                   <div class="result-title">
+                    <span class="expand-icon">
+                      <i :data-lucide="expandedResults.includes(index) ? 'chevron-down' : 'chevron-right'"></i>
+                    </span>
                     <span class="result-number">#{{ index + 1 }}</span>
                     <span class="result-model">{{ result.modelName }}</span>
                     <span class="resolution-badge">{{ result.resolution }}</span>
+                    <span v-if="result.videoDuration" class="duration-badge">⏱️ {{ result.videoDuration }}s</span>
+                    <span v-if="result.actualVideoDuration" class="actual-duration-badge">📹 {{ result.actualVideoDuration }}s</span>
                   </div>
                   <span :class="['status', result.status]">
-                    <i :data-lucide="result.status === 'success' ? 'check-circle' : 'x-circle'"></i>
-                    {{ result.status === 'success' ? '成功' : '失败' }}
+                    <i data-lucide="loader-2" v-if="result.status === 'testing'" class="spin-icon"></i>
+                    <i v-else :data-lucide="result.status === 'success' ? 'check-circle' : 'x-circle'"></i>
+                    {{ result.status === 'testing' ? '测试中...' : (result.status === 'success' ? '成功' : '失败') }}
                   </span>
                 </div>
 
-                <div class="result-body">
+                <div v-show="expandedResults.includes(index)" class="result-body">
                   <div class="result-meta">
                     <div class="meta-item">
                       <i data-lucide="building-2"></i>
@@ -353,8 +434,8 @@
                       <i data-lucide="timer"></i>
                       <div class="timing-details">
                         <strong class="client-time">{{ result.duration }}</strong>
-                        <span v-if="result.serverDuration" class="server-time" :title="'后端计时器: ' + result.serverDuration">
-                          (服务端: {{ result.serverDuration }})
+                        <span v-if="result.serverDuration" class="server-time" :title="'后端计时: ' + result.serverDuration">
+                          (后端: {{ result.serverDuration }})
                         </span>
                       </div>
                     </div>
@@ -378,8 +459,18 @@
                   </div>
 
                   <div v-if="result.previewUrl" class="result-preview">
-                    <img v-if="result.type === 'image'" :src="result.previewUrl" alt="生成结果" />
-                    <video v-else-if="result.type === 'video'" :src="result.previewUrl" controls />
+                    <img v-if="result.type === 'image'" :src="result.previewUrl" alt="生成结果" @error="(e) => { e.target.style.display = 'none'; console.error('图片加载失败:', result.modelName) }" />
+                    <video
+                      v-else-if="result.type === 'video'"
+                      :src="result.displayUrl || result.previewUrl"
+                      controls
+                      preload="metadata"
+                      @error="(e) => { console.error('视频加载失败:', result.modelName, e.target.error); e.target.parentElement.innerHTML = '<div style=\'padding:20px;color:#ef4444;text-align:center;\'><i data-lucide=\'alert-triangle\'></i><br>视频加载失败</div>' }"
+                      @loadeddata="console.log('✅ 视频加载成功:', result.modelName)"
+                      @click.stop
+                    >
+                      您的浏览器不支持视频播放
+                    </video>
                   </div>
 
                   <div v-if="result.filePath" class="file-info">
@@ -424,6 +515,7 @@ const generateTypes = [
 ]
 
 const resolutions = ['720p', '1080p', '2k', '4k']
+const videoDurations = [5, 6, 7, 8]
 
 const featureMap = {
   'image': [
@@ -458,12 +550,14 @@ const featureMap = {
 
 const selectedType = ref('image')
 const selectedResolutions = ref(['1080p'])
+const selectedVideoDuration = ref(5)
 const testPrompt = ref('一只可爱的猫咪在花园里玩耍，阳光明媚，高质量，细节丰富')
 const testMode = ref('all')
 
 const isBatchTesting = ref(false)
 const isPaused = ref(false)
 const shouldStop = ref(false)
+const isStopping = ref(false)
 
 const currentTestingModel = ref(null)
 const currentResolution = ref('')
@@ -473,8 +567,14 @@ const hoveredModel = ref(null)
 const selectedModels = ref([])
 const modelSearchKeyword = ref('')
 const selectedFeature = ref('')
+const showOnlyImageRequired = ref(false)
+const uploadedTestImages = ref([])
+const testImageInputRef = ref(null)
+const testDirectoryHandle = ref(null)
+const isFileSystemAccessSupported = 'showDirectoryPicker' in window
 
 const testResults = ref([])
+const expandedResults = ref([])
 const allModels = ref({
   image_models: [],
   video_models: []
@@ -579,6 +679,240 @@ function clearModelSelection() {
   selectedModels.value = []
 }
 
+function triggerImageUpload() {
+  if (testImageInputRef.value) {
+    testImageInputRef.value.click()
+  }
+}
+
+async function handleTestImagesUpload(event) {
+  const files = event.target.files
+  if (!files || files.length === 0) return
+
+  const maxFiles = 5 - uploadedTestImages.value.length
+  const filesToProcess = Array.from(files).slice(0, maxFiles)
+
+  for (const file of filesToProcess) {
+    if (!file.type.startsWith('image/')) {
+      showToast(`文件 "${file.name}" 不是有效的图片格式`, 'warning')
+      continue
+    }
+
+    try {
+      const previewUrl = await convertFileToBase64(file)
+      uploadedTestImages.value.push({
+        name: file.name,
+        size: file.size,
+        sizeText: formatFileSize(file.size),
+        type: file.type,
+        base64Data: previewUrl,
+        previewUrl: previewUrl
+      })
+    } catch (error) {
+      console.error('处理图片失败:', error)
+      showToast(`处理图片 "${file.name}" 失败`, 'error')
+    }
+  }
+
+  event.target.value = ''
+}
+
+function removeTestImage(index) {
+  uploadedTestImages.value.splice(index, 1)
+}
+
+function convertFileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
+
+function extractResultFromResponse(data) {
+  if (!data || data.code !== 200) {
+    throw new Error(data?.message || '生成失败')
+  }
+
+  const resultData = data.data
+  if (!resultData) {
+    throw new Error('未获取到结果数据')
+  }
+
+  const taskInfo = {
+    taskId: resultData.task_id,
+    type: resultData.type,
+    status: resultData.status,
+    progress: resultData.progress
+  }
+
+  let results = []
+
+  if (resultData.result) {
+    if (resultData.result.images && Array.isArray(resultData.result.images)) {
+      resultData.result.images.forEach(img => {
+        results.push({
+          type: 'image',
+          url: img.url,
+          id: img.id
+        })
+      })
+    }
+
+    if (resultData.result.video) {
+      results.push({
+        type: 'video',
+        url: resultData.result.video.url,
+        id: resultData.result.video.id,
+        thumbnail: resultData.result.video.thumbnail
+      })
+    }
+
+    if (resultData.result.video_url) {
+      results.push({
+        type: 'video',
+        url: resultData.result.video_url,
+        id: taskInfo.taskId
+      })
+    }
+  }
+
+  console.log(`📋 提取结果: ${results.length} 个文件 (${results.map(r => r.type).join(', ')})`)
+  
+  return { ...taskInfo, results }
+}
+
+async function fetchProtectedVideo(videoUrl) {
+  try {
+    const token = localStorage.getItem('token') || ''
+    const response = await fetch(videoUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    
+    const blob = await response.blob()
+    return URL.createObjectURL(blob)
+  } catch (error) {
+    console.error('❌ 获取受保护视频失败:', error)
+    throw error
+  }
+}
+
+async function selectTestDirectory() {
+  try {
+    if (!isFileSystemAccessSupported) {
+      showToast('您的浏览器不支持直接选择文件夹，文件将下载到默认目录', 'warning')
+      return
+    }
+
+    const handle = await window.showDirectoryPicker({
+      mode: 'readwrite',
+      startIn: 'downloads'
+    })
+
+    testDirectoryHandle.value = handle
+    console.log('✅ 已选择保存目录:', handle.name)
+    showToast(`✅ 已设置保存目录: ${handle.name}`, 'success')
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error('❌ 选择目录失败:', error)
+      showToast('选择目录失败: ' + error.message, 'error')
+    }
+  }
+}
+
+async function saveToFileWithFileSystemAccess(fileUrl, fileName, fileType) {
+  try {
+    if (!testDirectoryHandle.value || !isFileSystemAccessSupported) {
+      console.log('📁 未指定保存目录，使用浏览器默认下载')
+      await saveToFileFallback(fileUrl, fileName)
+      return false
+    }
+
+    let blob
+
+    if (fileUrl.startsWith('data:')) {
+      const parts = fileUrl.split(',')
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png'
+      const bstr = atob(parts[1])
+      const u8arr = new Uint8Array(bstr.length)
+      for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
+      blob = new Blob([u8arr], { type: mime })
+    } else {
+      console.log('🌐 正在下载文件:', fileUrl)
+      try {
+        const response = await fetch(fileUrl)
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        blob = await response.blob()
+        console.log(`✅ 文件下载完成: ${(blob.size / 1024 / 1024).toFixed(2)} MB`)
+      } catch (fetchError) {
+        console.error('❌ 文件下载失败:', fetchError)
+        await saveToFileFallback(fileUrl, fileName)
+        return false
+      }
+    }
+
+    const fileHandle = await testDirectoryHandle.value.getFileHandle(fileName, { create: true })
+    const writable = await fileHandle.createWritable()
+    await writable.write(blob)
+    await writable.close()
+
+    console.log(`💾 已保存到test文件夹: ${fileName} (${(blob.size / 1024 / 1024).toFixed(2)} MB)`)
+    return true
+  } catch (error) {
+    console.error('❌ 保存到test文件夹失败，尝试浏览器下载:', error)
+    await saveToFileFallback(fileUrl, fileName)
+    return false
+  }
+}
+
+async function saveToFileFallback(fileUrl, fileName) {
+  try {
+    if (fileUrl.startsWith('data:')) {
+      const parts = fileUrl.split(',')
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png'
+      const bstr = atob(parts[1])
+      const u8arr = new Uint8Array(bstr.length)
+      for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
+
+      const blob = new Blob([u8arr], { type: mime })
+
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(link.href)
+    } else {
+      const link = document.createElement('a')
+      link.href = fileUrl
+      link.download = fileName
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+
+    console.log(`💾 已通过浏览器下载: ${fileName}`)
+    return true
+  } catch (error) {
+    console.error('❌ 保存文件失败:', error)
+    return false
+  }
+}
+
 function getFirstSelectedModel() {
   if (selectedModels.value.length === 0) return null
   return allFilteredModels.value.find(m => m.id === selectedModels.value[0]) || null
@@ -603,11 +937,27 @@ function extractServerTiming(responseData) {
   if (!responseData || !responseData.data) return null
 
   const data = responseData.data
+
+  if (data.elapsed_time_formatted) {
+    return data.elapsed_time_formatted
+  }
+
+  if (data.elapsed_time !== undefined && data.elapsed_time !== null) {
+    const value = parseFloat(data.elapsed_time)
+    if (!isNaN(value)) {
+      if (value > 60) {
+        const minutes = Math.floor(value / 60)
+        const seconds = Math.round(value % 60)
+        return `${minutes}分${seconds}秒`
+      }
+      return value.toFixed(2) + 's'
+    }
+  }
+
   const timingFields = [
     'generation_time',
     'timing',
     'duration',
-    'elapsed_time',
     'server_time',
     'processing_time',
     'total_time'
@@ -675,6 +1025,9 @@ function switchType(typeId) {
   selectedModels.value = []
   modelSearchKeyword.value = ''
   selectedFeature.value = ''
+  showOnlyImageRequired.value = false
+  uploadedTestImages.value = []
+  selectedVideoDuration.value = 5
 }
 
 function getModelPrice(model, resolution) {
@@ -718,7 +1071,7 @@ function isModelCompleted(modelId) {
 function hasModelFailed(modelId) {
   return testResults.value.some(r =>
     r.modelId === modelId && r.status === 'failed' &&
-    !testResults.some(rr => rr.modelId === modelId && rr.status === 'success')
+    !testResults.value.some(rr => rr.modelId === modelId && rr.status === 'success')
   )
 }
 
@@ -756,175 +1109,275 @@ async function startBatchTest() {
   isBatchTesting.value = true
   isPaused.value = false
   shouldStop.value = false
+  isStopping.value = false
   currentTaskIndex.value = 0
   totalTasks.value = taskQueue.length
   testResults.value = []
 
-  console.log(`🚀 开始批量测试: ${taskQueue.length} 个任务`)
+  try {
+    for (let i = 0; i < taskQueue.length; i++) {
+      if (shouldStop.value) break
 
-  for (let i = 0; i < taskQueue.length; i++) {
-    if (shouldStop.value) break
+      while (isPaused.value && !shouldStop.value) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
 
-    while (isPaused.value && !shouldStop.value) {
-      await new Promise(resolve => setTimeout(resolve, 500))
+      if (shouldStop.value) break
+
+      const task = taskQueue[i]
+      currentTaskIndex.value = i + 1
+      currentTestingModel.value = task.model
+      currentResolution.value = task.resolution
+
+      await runSingleTest(task.model, task.resolution)
+
+      nextTick(() => {
+        if (window.lucide) lucide.createIcons()
+      })
     }
 
-    if (shouldStop.value) break
-
-    const task = taskQueue[i]
-    currentTaskIndex.value = i + 1
-    currentTestingModel.value = task.model
-    currentResolution.value = task.resolution
-
-    await runSingleTest(task.model, task.resolution)
+    if (!shouldStop.value) {
+      showToast(`🎉 批量测试完成！共完成 ${testResults.value.length} 个任务`, 'success')
+    } else {
+      showToast(`⏹️ 测试已停止，已完成 ${testResults.value.length}/${totalTasks.value}`, 'info')
+    }
+  } finally {
+    isBatchTesting.value = false
+    isStopping.value = false
+    currentTestingModel.value = null
+    currentResolution.value = ''
 
     nextTick(() => {
       if (window.lucide) lucide.createIcons()
     })
   }
-
-  isBatchTesting.value = false
-  currentTestingModel.value = null
-  currentResolution.value = ''
-
-  if (!shouldStop.value) {
-    showToast(`🎉 批量测试完成！共完成 ${testResults.value.length} 个任务`, 'success')
-  } else {
-    showToast(`⏹️ 测试已停止，已完成 ${testResults.value.length}/${totalTasks.value}`, 'info')
-  }
-
-  nextTick(() => {
-    if (window.lucide) lucide.createIcons()
-  })
 }
 
 async function runSingleTest(model, resolution) {
   const startTime = Date.now()
+  const resultId = `${model.id}_${resolution}_${startTime}`
+
+  const createTestingResult = () => ({
+    id: resultId,
+    modelName: model.name,
+    modelId: model.id,
+    vendor: model.vendor_name,
+    type: selectedType.value,
+    resolution: resolution,
+    videoDuration: selectedType.value === 'video' ? selectedVideoDuration.value : null,
+    duration: '测试中...',
+    serverDuration: null,
+    taskId: null,
+    status: 'testing',
+    fileSize: '-',
+    filePath: '',
+    previewUrl: null,
+    displayUrl: null,
+    timestamp: new Date().toLocaleString(),
+    prompt: testPrompt.value
+  })
+
+  const findResultIndex = () => testResults.value.findIndex(r => r.id === resultId)
+
+  const updateResultToFailed = (errorMsg, durationStr) => {
+    try {
+      const idx = findResultIndex()
+      if (idx > -1) {
+        const newResults = [...testResults.value]
+        newResults[idx] = {
+          ...newResults[idx],
+          duration: durationStr,
+          status: 'failed',
+          error: errorMsg
+        }
+        testResults.value = newResults
+      } else {
+        testResults.value = [...testResults.value, {
+          ...createTestingResult(),
+          duration: durationStr,
+          status: 'failed',
+          error: errorMsg
+        }]
+      }
+    } catch (updateError) {
+      console.error('更新失败状态出错:', updateError.message)
+    }
+  }
+
+  testResults.value = [...testResults.value, createTestingResult()]
+
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+    const idx = findResultIndex()
+    if (idx > -1 && !expandedResults.value.includes(idx)) {
+      expandedResults.value = [...expandedResults.value, idx]
+    }
+  })
 
   try {
-    const submitModelValue = model.vendor === 'vendor_b' ? model.id : model.name
+    const submitModelValue = model.vendor === 'vendor_b' ? (model.id || model.name) : model.name
+
+    const inputFiles = uploadedTestImages.value.map((img, index) => ({
+      type: 'image',
+      url: img.base64Data,
+      purpose: 'reference',
+      object_id: `image_${index + 1}`
+    }))
 
     const requestBody = {
       output_type: selectedType.value,
       model: submitModelValue,
       vendor: model.vendor,
-      feature: selectedType.value === 'image' ? 'text_to_image' : 'text_to_video',
+      feature: (selectedFeature.value) || (selectedType.value === 'image' ? 'text_to_image' : 'text_to_video'),
       parameters: {
         resolution: resolution.toUpperCase(),
         ratio: '16:9',
-        count: 1
+        count: 1,
+        duration: selectedType.value === 'video' ? selectedVideoDuration.value : undefined
       },
       prompt: testPrompt.value,
-      input_files: []
+      input_files: inputFiles
     }
 
-    console.log(`🧪 [${currentTaskIndex.value}/${totalTasks.value}] 测试: ${model.name} @ ${resolution}`)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 300000)
 
-    const response = await fetch(`${API_CONFIG.BASE_URL}/generate?sync=true`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-      },
-      body: JSON.stringify(requestBody)
-    })
+    let response
+    let data
 
-    const data = await response.json()
+    try {
+      response = await fetch(`${API_CONFIG.BASE_URL}/generate?sync=true`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+    } catch (fetchErr) {
+      clearTimeout(timeoutId)
+      if (fetchErr.name === 'AbortError') {
+        throw new Error('请求超时（5分钟）')
+      }
+      throw fetchErr
+    }
+
+    if (!response.ok) {
+      let errorText = ''
+      try {
+        errorText = await response.text()
+      } catch (e) {}
+      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`)
+    }
+
+    try {
+      data = await response.json()
+    } catch (jsonErr) {
+      throw new Error('解析响应JSON失败')
+    }
+
+    if (!data || data.code !== 200 || !data.data) {
+      const errMsg = data?.message || data?.error || '生成失败'
+      throw new Error(errMsg)
+    }
+
     const endTime = Date.now()
     const duration = ((endTime - startTime) / 1000).toFixed(2) + 's'
 
-    if (data.code === 200 && data.data && data.data.results) {
-      const resultData = data.data.results[0]
-      if (resultData && resultData.url) {
-        const fileName = `${model.name}_${resolution}.${resultData.type === 'image' ? 'png' : 'mp4'}`
-        const filePath = `test/${fileName}`
+    let extractedData
+    try {
+      extractedData = extractResultFromResponse(data)
+    } catch (extractErr) {
+      throw new Error(`提取结果失败: ${extractErr.message}`)
+    }
 
-        await saveToFile(resultData.url, fileName, resultData.type)
+    if (!extractedData.results || extractedData.results.length === 0) {
+      throw new Error('未返回有效的生成结果')
+    }
 
-        const serverDuration = extractServerTiming(data)
-
-        const result = {
-          modelName: model.name,
-          modelId: model.id,
-          vendor: model.vendor_name,
-          type: selectedType.value,
-          resolution: resolution,
-          duration: duration,
-          serverDuration: serverDuration,
-          taskId: data.data.task_id || null,
-          status: 'success',
-          fileSize: estimateFileSize(resultData.url),
-          filePath: filePath,
-          previewUrl: convertBase64ToBlobUrl(resultData.url),
-          timestamp: new Date().toLocaleString(),
-          prompt: testPrompt.value
-        }
-
-        testResults.value.push(result)
-        console.log(`✅ 完成: ${model.name} @ ${resolution} (客户端: ${duration}${serverDuration ? ', 服务端: ' + serverDuration : ''})`)
-      } else {
-        throw new Error('未返回有效结果')
+    for (const resultData of extractedData.results) {
+      if (!resultData.url) {
+        continue
       }
-    } else {
-      throw new Error(data.message || '生成失败')
+
+      let displayUrl = resultData.url
+      let previewUrl = resultData.url
+
+      if (resultData.type === 'video' && resultData.url.includes('neolink.com')) {
+        try {
+          displayUrl = await Promise.race([
+            fetchProtectedVideo(resultData.url),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('视频超时')), 15000)
+            )
+          ])
+          previewUrl = displayUrl
+        } catch (videoErr) {
+        }
+      } else if (resultData.url.startsWith('data:')) {
+        previewUrl = convertBase64ToBlobUrl(resultData.url)
+      }
+
+      const fileName = `${model.name}_${resolution}.${resultData.type === 'image' ? 'png' : 'mp4'}`
+      const filePath = `test/${fileName}`
+
+      try {
+        await Promise.race([
+          saveToFileWithFileSystemAccess(resultData.url, fileName, resultData.type),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('保存超时')), 30000)
+          )
+        ])
+      } catch (saveErr) {
+      }
+
+      const serverDuration = extractServerTiming(data)
+      const actualVideoDuration = data.data?.result?.video?.duration || null
+
+      const successResult = {
+        ...createTestingResult(),
+        type: resultData.type || selectedType.value,
+        actualVideoDuration: actualVideoDuration,
+        duration: duration,
+        serverDuration: serverDuration,
+        taskId: extractedData.taskId || data.data.task_id || null,
+        status: 'success',
+        fileSize: estimateFileSize(resultData.url),
+        filePath: filePath,
+        previewUrl: previewUrl,
+        displayUrl: displayUrl
+      }
+
+      const idx = findResultIndex()
+      if (idx > -1) {
+        const newResults = [...testResults.value]
+        newResults[idx] = successResult
+        testResults.value = newResults
+      }
     }
   } catch (error) {
-    console.error(`❌ 失败: ${model.name} @ ${resolution}:`, error.message)
     const duration = ((Date.now() - startTime) / 1000).toFixed(2) + 's'
-
-    testResults.value.push({
-      modelName: model.name,
-      modelId: model.id,
-      vendor: model.vendor_name,
-      type: selectedType.value,
-      resolution: resolution,
-      duration: duration,
-      status: 'failed',
-      error: error.message,
-      timestamp: new Date().toLocaleString(),
-      prompt: testPrompt.value
-    })
+    updateResultToFailed(error.message, duration)
   }
 }
 
 function pauseBatchTest() {
+  if (!isBatchTesting.value || isStopping.value) return
+
   isPaused.value = !isPaused.value
-  showToast(isPaused.value ? '⏸️ 测试已暂停' : '▶️ 继续测试...', 'info')
+  showToast(isPaused.value ? '⏸️ 测试已暂停，当前任务完成后不会启动新任务' : '▶️ 继续测试...', 'info')
 }
 
 function stopBatchTest() {
+  if (!isBatchTesting.value) return
+
   shouldStop.value = true
+  isStopping.value = true
   isPaused.value = false
-  showToast('⏹️ 正在停止测试...', 'info')
-}
-
-async function saveToFile(dataUrl, fileName, fileType) {
-  try {
-    if (!dataUrl.startsWith('data:')) {
-      console.warn('⚠️ 无法保存非base64数据')
-      return
-    }
-
-    const parts = dataUrl.split(',')
-    const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png'
-    const bstr = atob(parts[1])
-    const u8arr = new Uint8Array(bstr.length)
-    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
-
-    const blob = new Blob([u8arr], { type: mime })
-
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(link.href)
-
-    console.log(`💾 已保存: ${fileName}`)
-  } catch (error) {
-    console.error('❌ 保存文件失败:', error)
-  }
+  showToast('⏹️ 正在停止测试，等待当前任务完成...', 'info')
 }
 
 function convertBase64ToBlobUrl(dataUrl) {
@@ -1001,10 +1454,21 @@ function exportReport() {
       report += `**支持的特色功能**: ${features.map(f => f.label).join('、')}\n\n`
     }
 
-    report += `| # | 分辨率 | 状态 | 客户端耗时 | 服务端耗时 | 文件大小 | 任务ID | 时间 |\n|---|--------|------|-----------|-----------|----------|--------|------|\n`
+    const hasVideoDuration = results.some(r => r.videoDuration || r.actualVideoDuration)
+    if (hasVideoDuration) {
+      report += `| # | 分辨率 | 视频时长 | 实际时长 | 状态 | 客户端耗时 | 后端耗时 | 文件大小 | 任务ID | 时间 |\n|---|--------|----------|----------|------|-----------|---------|----------|--------|------|\n`
+    } else {
+      report += `| # | 分辨率 | 状态 | 客户端耗时 | 后端耗时 | 文件大小 | 任务ID | 时间 |\n|---|--------|------|-----------|---------|----------|--------|------|\n`
+    }
 
     results.forEach(result => {
       report += `| ${result.index} | ${result.resolution} | `
+      if (hasVideoDuration) {
+        report += result.videoDuration ? `${result.videoDuration}s` : '-'
+        report += ` | `
+        report += result.actualVideoDuration ? `${result.actualVideoDuration}s` : '-'
+        report += ` | `
+      }
       report += result.status === 'success' ? '✅ 成功' : '❌ 失败'
       report += ` | ${result.duration} | `
       report += result.serverDuration || '-'
@@ -1043,9 +1507,24 @@ function exportReport() {
   showToast('📄 完整测试报告已导出', 'success')
 }
 
+function toggleResultExpand(index) {
+  if (index < 0 || index >= testResults.value.length) return
+
+  if (expandedResults.value.includes(index)) {
+    expandedResults.value = expandedResults.value.filter(i => i !== index)
+  } else {
+    expandedResults.value = [...expandedResults.value, index]
+  }
+
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
 function clearResults() {
   if (confirm('确定要清空所有测试数据吗？此操作不可撤销。')) {
     testResults.value = []
+    expandedResults.value = []
     currentTaskIndex.value = 0
     totalTasks.value = 0
     showToast('🗑️ 测试数据已清空', 'info')
@@ -1093,6 +1572,30 @@ onMounted(async () => {
   grid-template-columns: 400px 1fr;
   gap: 24px;
   height: calc(100vh - 160px);
+}
+
+.test-content > div:nth-child(2) {
+  overflow-y: auto;
+  max-height: calc(100vh - 160px);
+  padding-right: 8px;
+}
+
+.test-content > div:nth-child(2)::-webkit-scrollbar {
+  width: 6px;
+}
+
+.test-content > div:nth-child(2)::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.test-content > div:nth-child(2)::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.test-content > div:nth-child(2)::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 .control-panel {
@@ -1210,6 +1713,43 @@ onMounted(async () => {
   display: none;
 }
 
+/* 视频时长选择 */
+.duration-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.duration-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  font-size: 13px;
+}
+
+.duration-option:hover:not(:disabled) {
+  border-color: #8b5cf6;
+  background: #faf5ff;
+}
+
+.duration-option.selected {
+  border-color: #8b5cf6;
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  color: #7c3aed;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+}
+
+.duration-option input {
+  display: none;
+}
+
 .param-select {
   width: 100%;
   padding: 10px 12px;
@@ -1232,6 +1772,152 @@ onMounted(async () => {
 .prompt-input:focus {
   outline: none;
   border-color: #3b82f6;
+}
+
+/* 图片上传区域 */
+.image-upload-section {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #93c5fd;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.upload-hint {
+  font-size: 11px;
+  color: #3b82f6;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  background: white;
+  border: 2px dashed #93c5fd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-area:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.upload-area i {
+  width: 32px;
+  height: 32px;
+  color: #3b82f6;
+}
+
+.upload-area span {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.upload-area small {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.uploaded-images-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.uploaded-image-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  position: relative;
+}
+
+.uploaded-image-item img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.image-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.image-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-size {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.remove-image-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #fecaca;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #dc2626;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.remove-image-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+.remove-image-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+.add-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border: 1px dashed #93c5fd;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #3b82f6;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.add-more-btn:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.add-more-btn i {
+  width: 14px;
+  height: 14px;
 }
 
 .progress-section {
@@ -1283,6 +1969,93 @@ onMounted(async () => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* 保存目录设置 */
+.save-directory-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
+.save-directory-section label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 8px;
+}
+
+.directory-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.select-directory-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select-directory-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.select-directory-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.select-directory-btn i {
+  width: 16px;
+  height: 16px;
+}
+
+.directory-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #166534;
+  font-weight: 500;
+  padding: 6px 10px;
+  background: #dcfce7;
+  border-radius: 6px;
+}
+
+.directory-path i {
+  width: 14px;
+  height: 14px;
+}
+
+.directory-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #92400e;
+  opacity: 0.8;
+}
+
+.directory-hint i {
+  width: 12px;
+  height: 12px;
 }
 
 .batch-buttons {
@@ -1844,7 +2617,18 @@ onMounted(async () => {
   border: 2px solid #e5e7eb;
   border-radius: 10px;
   overflow: hidden;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.result-item:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.result-item.expanded {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
 .result-item.success {
@@ -1852,9 +2636,44 @@ onMounted(async () => {
   background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
 }
 
+.result-item.success:hover {
+  border-color: #22c55e;
+}
+
+.result-item.success.expanded {
+  border-color: #16a34a;
+}
+
 .result-item.failed {
   border-color: #fca5a5;
   background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+}
+
+.result-item.failed:hover {
+  border-color: #ef4444;
+}
+
+.result-item.failed.expanded {
+  border-color: #dc2626;
+}
+
+.result-item.testing {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+  animation: pulse 2s infinite;
+}
+
+.result-item.testing:hover {
+  border-color: #f59e0b;
+}
+
+.result-item.testing.expanded {
+  border-color: #d97706;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .result-header {
@@ -1870,6 +2689,21 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.expand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+}
+
+.expand-icon i {
+  width: 16px;
+  height: 16px;
 }
 
 .result-number {
@@ -1896,6 +2730,24 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.duration-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  color: white;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.actual-duration-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  color: white;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
 .status {
   display: flex;
   align-items: center;
@@ -1914,6 +2766,20 @@ onMounted(async () => {
 .status.failed {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.status.testing {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .status i {
