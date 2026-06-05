@@ -447,8 +447,25 @@
         <div v-else class="jimeng-interaction">
           <!-- 顶部信息栏 -->
           <div class="interaction-topbar">
-            <div class="topbar-context">
-              <span class="context-title">{{ currentConversationTitle }}</span>
+            <div class="topbar-context" @click="togglePromptExpand" :class="{ 'is-expanded': isPromptExpanded }">
+              <!-- 上传文件缩略图 -->
+              <div v-if="currentCardInputFiles.length > 0" class="context-thumbs">
+                <div v-for="(file, fi) in currentCardInputFiles.slice(0, 3)" :key="fi" class="context-thumb-item">
+                  <img v-if="file.type === 'image'" :src="convertBase64ToBlobUrl(file.url)" class="context-thumb-img" />
+                  <div v-else-if="file.type === 'video'" class="context-thumb-video">
+                    <i data-lucide="video" style="width: 12px; height: 12px;"></i>
+                  </div>
+                  <div v-else class="context-thumb-file">
+                    <i data-lucide="file" style="width: 12px; height: 12px;"></i>
+                  </div>
+                </div>
+                <span v-if="currentCardInputFiles.length > 3" class="context-thumb-more">+{{ currentCardInputFiles.length - 3 }}</span>
+              </div>
+              <!-- 用户输入文本 -->
+              <span class="context-prompt" :class="{ 'is-truncated': !isPromptExpanded }">{{ currentCardPrompt || '新对话' }}</span>
+              <button v-if="currentCardPrompt && currentCardPrompt.length > 50" class="context-expand-btn" @click.stop="togglePromptExpand">
+                <i :data-lucide="isPromptExpanded ? 'chevron-up' : 'chevron-down'" style="width: 14px; height: 14px;"></i>
+              </button>
               <span class="context-sep">|</span>
               <span class="context-model">{{ selectedModelName }}</span>
               <span class="context-sep">|</span>
@@ -861,6 +878,26 @@ const currentConversationTitle = computed(() => {
   const conv = conversationHistory.value.find(c => c.id === activeConversationId.value)
   return conv ? conv.title : '新对话'
 })
+
+// 当前对话最新卡片的用户输入和上传文件
+const currentCardPrompt = computed(() => {
+  const conv = conversationHistory.value.find(c => c.id === activeConversationId.value)
+  if (!conv || conv.cards.length === 0) return ''
+  return conv.cards[conv.cards.length - 1].prompt || conv.title
+})
+
+const currentCardInputFiles = computed(() => {
+  const conv = conversationHistory.value.find(c => c.id === activeConversationId.value)
+  if (!conv || conv.cards.length === 0) return []
+  return conv.cards[conv.cards.length - 1].uploadedInputFiles || []
+})
+
+const isPromptExpanded = ref(false)
+function togglePromptExpand() {
+  if (currentCardPrompt.value && currentCardPrompt.value.length > 50) {
+    isPromptExpanded.value = !isPromptExpanded.value
+  }
+}
 
 // 当前对话的结果卡片（computed 自动跟随活跃对话）
 const generatedCards = computed({
@@ -3291,6 +3328,91 @@ function handleGlobalClick(e) {
   gap: 8px;
   font-size: 13px;
   color: #6b7280;
+  cursor: default;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.topbar-context.is-expanded {
+  flex-wrap: wrap;
+}
+
+.context-thumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.context-thumb-item {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.context-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.context-thumb-video,
+.context-thumb-file {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.context-thumb-more {
+  font-size: 11px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.context-prompt {
+  font-weight: 600;
+  color: #1f2937;
+  min-width: 0;
+}
+
+.context-prompt.is-truncated {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.topbar-context.is-expanded .context-prompt {
+  white-space: normal;
+  max-width: none;
+}
+
+.context-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 4px;
+  color: #6b7280;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.context-expand-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .context-title {
@@ -3405,12 +3527,11 @@ function handleGlobalClick(e) {
 
 .result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
 }
 
 .result-image-item {
-  aspect-ratio: 1;
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -3428,14 +3549,12 @@ function handleGlobalClick(e) {
 
 .result-image-item img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: block;
 }
 
 .video-wrapper {
   position: relative;
   width: 100%;
-  height: 100%;
   background: #000;
   border-radius: 12px;
   overflow: hidden;
@@ -3443,8 +3562,7 @@ function handleGlobalClick(e) {
 
 .video-wrapper video {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
+  display: block;
 }
 
 .loading-overlay {
@@ -3511,7 +3629,6 @@ function handleGlobalClick(e) {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  aspect-ratio: 1;
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
   transition: all 0.25s;
@@ -3526,12 +3643,10 @@ function handleGlobalClick(e) {
 .result-img,
 .result-video {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: block;
 }
 
 .result-video {
-  object-fit: contain;
   background: #000;
 }
 
@@ -3584,7 +3699,7 @@ function handleGlobalClick(e) {
 
 .result-actions-row {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   margin-top: 14px;
   padding-top: 14px;
@@ -3649,7 +3764,8 @@ function handleGlobalClick(e) {
   }
   
   .result-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    max-width: 100%;
   }
 }
 
@@ -3673,7 +3789,9 @@ function handleGlobalClick(e) {
   }
   
   .result-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    max-width: 100%;
+    gap: 14px;
   }
 }
 </style>
