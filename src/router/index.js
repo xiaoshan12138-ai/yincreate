@@ -8,7 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('../views/HomeView.vue'),
-      meta: { title: '首页', requiresAuth: false }
+      meta: { title: '首页', requiresAuth: true }
     },
     {
       path: '/login',
@@ -63,6 +63,24 @@ const router = createRouter({
       name: 'test',
       component: () => import('../views/TestView.vue'),
       meta: { title: '模型测试', requiresAuth: true }
+    },
+    {
+      path: '/announcement',
+      name: 'announcement',
+      component: () => import('../views/AnnouncementView.vue'),
+      meta: { title: '平台公告', requiresAuth: true }
+    },
+    {
+      path: '/announcement/:id',
+      name: 'announcement-detail',
+      component: () => import('../views/AnnouncementDetailView.vue'),
+      meta: { title: '公告详情', requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('../views/AdminView.vue'),
+      meta: { title: '系统管理', requiresAuth: true }
     },
 
     // 企业管理子路由
@@ -134,16 +152,37 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   document.title = `${to.meta.title || '影创studio'} - 影创studio AI视频创作平台`
 
-  if (to.meta.requiresAuth) {
-    const userStore = useUserStore()
-    if (!userStore.isLoggedIn) {
-      next({ name: 'login', query: { redirect: to.fullPath } })
-    } else {
-      next()
-    }
-  } else {
-    next()
+  const userStore = useUserStore()
+  const userType = userStore.user?.user_type
+
+  // 已登录用户访问登录页，按角色跳转到默认页面
+  if (to.name === 'login' && userStore.isLoggedIn) {
+    const defaultRoute = userType === 'admin' ? '/admin'
+      : userType === 'enterprise' ? '/enterprise/bi'
+      : '/'
+    next({ path: defaultRoute })
+    return
   }
+
+  // 需要认证的页面，未登录则跳转登录页
+  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
+    next({ name: 'login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  // 系统管理员页面：仅 admin 角色可访问
+  if (to.path.startsWith('/admin') && userType !== 'admin') {
+    next({ path: '/' })
+    return
+  }
+
+  // 企业管理页面：企业账号和管理员可访问，员工身份不可见
+  if (to.path.startsWith('/enterprise') && userType !== 'enterprise' && userType !== 'admin') {
+    next({ path: '/' })
+    return
+  }
+
+  next()
 })
 
 export default router

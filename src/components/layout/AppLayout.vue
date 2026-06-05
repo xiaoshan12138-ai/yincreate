@@ -7,7 +7,7 @@
       <TopNav :page-title="pageTitle" />
       <div class="content-wrapper">
         <!-- 主内容区域 -->
-        <main class="content-area">
+        <main :class="['content-area', { 'content-full-width': !showRightSidebar }]">
           <slot />
         </main>
         <!-- 右侧边栏（条件显示） -->
@@ -40,7 +40,13 @@ const pageTitle = computed(() => {
     '/pricing': '定价方案',
     '/profile': '个人资料',
     '/settings': '设置',
-    '/login': '登录'
+    '/login': '登录',
+    '/announcement': '平台公告',
+    '/admin': '系统管理'
+  }
+
+  if (route.path.startsWith('/announcement/')) {
+    return '公告详情'
   }
 
   if (route.path.startsWith('/enterprise')) {
@@ -59,6 +65,8 @@ const pageTitle = computed(() => {
 })
 
 const showRightSidebar = computed(() => {
+  // 生成页面有自己的左侧对话历史栏，不需要右侧边栏
+  if (route.path === '/generate') return false
   return route.path === '/' || route.path === '/profile'
 })
 </script>
@@ -106,6 +114,11 @@ const showRightSidebar = computed(() => {
 
 .content-area::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.35);
+}
+
+.content-full-width {
+  flex: 1;
+  padding: 0;
 }
 
 .right-sidebar-container {

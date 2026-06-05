@@ -245,8 +245,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../components/layout/AppLayout.vue'
 import { userData } from '../data/userData'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const userStats = ref([
   { value: 36, label: '我的作品', icon: 'file-video' },
@@ -309,7 +311,8 @@ const handleImageError = (event) => {
   event.target.style.display = 'none'
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  await userStore.logout()
   router.push('/login')
 }
 

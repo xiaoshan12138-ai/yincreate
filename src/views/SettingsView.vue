@@ -638,8 +638,10 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../components/layout/AppLayout.vue'
 import { userData } from '../data/userData'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const activeSection = ref('profile')
 
@@ -848,11 +850,12 @@ const savePreference = () => {
   showToast('偏好设置已保存')
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  await userStore.logout()
   showToast('已退出登录')
   setTimeout(() => {
     router.push('/login')
-  }, 1500)
+  }, 800)
 }
 
 onMounted(() => {

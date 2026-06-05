@@ -42,7 +42,7 @@
       <ProjectHeaderBar
         title="账号管理"
         subtitle="管理企业内所有账号的配额、状态与使用情况"
-        add-label="新增账号"
+        add-label="分配账号"
         @add="openAddModal"
       />
 
@@ -208,28 +208,36 @@
         </div>
       </Teleport>
 
-      <!-- 新增账号弹窗 -->
+      <!-- 分配账号弹窗 -->
       <Teleport to="body">
         <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
           <div class="modal-container-add">
             <div class="modal-header">
-              <h3 class="modal-title">新增账号</h3>
+              <h3 class="modal-title">分配账号</h3>
               <button class="modal-close-btn" @click="closeAddModal">
                 <i data-lucide="x" style="width: 18px; height: 18px;"></i>
               </button>
             </div>
             <div class="modal-body">
               <div class="form-group">
-                <label class="form-label">账号性质</label>
-                <select v-model="addForm.nature" class="form-select">
-                  <option value="普通">普通</option>
-                  <option value="公司">公司</option>
-                  <option value="超级管理员">超级管理员</option>
+                <label class="form-label">选择账号 <span class="required">*</span></label>
+                <select v-model="addForm.accountId" class="form-select" required>
+                  <option value="" disabled>请选择要分配的账号</option>
+                  <option v-for="account in availableAccounts" :key="account.id" :value="account.id">
+                    账号 #{{ account.id }} ({{ account.nature }})
+                  </option>
                 </select>
               </div>
+
+              <div class="form-group">
+                <label class="form-label">账号性质</label>
+                <input type="text" :value="selectedAccountNature" class="form-input" readonly disabled>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">所属部门</label>
                 <select v-model="addForm.department" class="form-select">
+                  <option value="">请选择部门</option>
                   <option value="公司">公司</option>
                   <option value="漫剧部">漫剧部</option>
                   <option value="电商部">电商部</option>
@@ -238,10 +246,67 @@
                   <option value="电商1组">电商1组</option>
                 </select>
               </div>
+
               <div class="form-group">
-                <label class="form-label">关联人员姓名</label>
-                <input type="text" v-model="addForm.personName" placeholder="请输入人员姓名" class="form-input">
+                <label class="form-label">关联人员 <span class="required">*</span></label>
+                <select v-model="addForm.personId" class="form-select" @change="onPersonSelect" required>
+                  <option value="" disabled>请选择人员或新增人员</option>
+                  <optgroup label="已有人员">
+                    <option v-for="person in personnelList" :key="person.id" :value="person.id">
+                      {{ person.name }} ({{ person.department }})
+                    </option>
+                  </optgroup>
+                  <option value="__new__">+ 新增人员</option>
+                </select>
               </div>
+
+              <div v-if="showNewPersonForm" class="form-group new-person-form">
+                <label class="form-label"><i data-lucide="user-plus" style="width: 14px; height: 14px; margin-right: 4px;"></i>新增人员信息</label>
+                <input
+                  type="text"
+                  v-model="addForm.newPersonName"
+                  placeholder="请输入人员姓名"
+                  class="form-input"
+                  style="margin-bottom: 8px;"
+                >
+                <select v-model="addForm.newPersonDepartment" class="form-select">
+                  <option value="">请选择所属部门</option>
+                  <option value="公司">公司</option>
+                  <option value="漫剧部">漫剧部</option>
+                  <option value="电商部">电商部</option>
+                  <option value="漫剧1组">漫剧1组</option>
+                  <option value="漫剧2组">漫剧2组</option>
+                  <option value="电商1组">电商1组</option>
+                </select>
+              </div>
+
+              <div v-if="selectedPersonInfo && !showNewPersonForm" class="form-group person-info-display">
+                <label class="form-label">当前绑定信息</label>
+                <div class="info-card">
+                  <div class="info-row">
+                    <span class="info-label">姓名：</span>
+                    <span class="info-value">{{ selectedPersonInfo.name }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">部门：</span>
+                    <span class="info-value">{{ selectedPersonInfo.department }}</span>
+                  </div>
+                  <div v-if="selectedPersonInfo.boundAccount" class="info-row warning">
+                    <span class="info-label">已绑定账号：</span>
+                    <span class="info-value">#{{ selectedPersonInfo.boundAccount }}</span>
+                  </div>
+                </div>
+                <button
+                  v-if="selectedPersonInfo.boundAccount"
+                  type="button"
+                  class="btn-replace-person"
+                  @click="replacePersonBinding"
+                >
+                  <i data-lucide="refresh-cw" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+                  替换当前绑定
+                </button>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">初始配额(¥)</label>
                 <input type="number" v-model="addForm.allocated" placeholder="请输入配额金额" class="form-input">
@@ -249,7 +314,7 @@
             </div>
             <div class="modal-footer">
               <button class="btn-cancel" @click="closeAddModal">取消</button>
-              <button class="btn-submit" @click="submitAddAccount">确认添加</button>
+              <button class="btn-submit" @click="submitAddAccount">确认分配</button>
             </div>
           </div>
         </div>
@@ -284,14 +349,38 @@ const accountPool = ref({
 })
 
 const accounts = ref([
-  { id: 101, nature: '超级管理员', department: '公司', personName: '王开发', allocated: 50000, used: 32000, remaining: 18000 },
-  { id: 102, nature: '公司', department: '公司', personName: '赵老板', allocated: 100000, used: 80000, remaining: 15000 },
-  { id: 103, nature: '普通', department: '漫剧部', personName: '杜总', allocated: 80000, used: 55000, remaining: 22000 },
-  { id: 104, nature: '普通', department: '漫剧部', personName: '刘总', allocated: 75000, used: 60000, remaining: 12000 },
-  { id: 105, nature: '普通', department: '电商部', personName: '张经理', allocated: 60000, used: 42000, remaining: 16000 },
-  { id: 106, nature: '普通', department: '电商部', personName: '马经理', allocated: 55000, used: 38000, remaining: 15000 },
-  { id: 107, nature: '普通', department: '漫剧1组', personName: '小关', allocated: 40000, used: 35000, remaining: 3000 },
-  { id: 108, nature: '普通', department: '漫剧1组', personName: '小李', allocated: 35000, used: 28000, remaining: 5000 }
+  { id: 101, nature: '超级管理员', department: '公司', personName: '王开发', personId: 'P001', allocated: 50000, used: 32000, remaining: 18000 },
+  { id: 102, nature: '公司', department: '公司', personName: '赵老板', personId: 'P002', allocated: 100000, used: 80000, remaining: 15000 },
+  { id: 103, nature: '普通', department: '漫剧部', personName: '杜总', personId: 'P003', allocated: 80000, used: 55000, remaining: 22000 },
+  { id: 104, nature: '普通', department: '漫剧部', personName: '刘总', personId: 'P004', allocated: 75000, used: 60000, remaining: 12000 },
+  { id: 105, nature: '普通', department: '电商部', personName: '张经理', personId: 'P005', allocated: 60000, used: 42000, remaining: 16000 },
+  { id: 106, nature: '普通', department: '电商部', personName: '马经理', personId: 'P006', allocated: 55000, used: 38000, remaining: 15000 },
+  { id: 107, nature: '普通', department: '漫剧1组', personName: '小关', personId: 'P007', allocated: 40000, used: 35000, remaining: 3000 },
+  { id: 108, nature: '普通', department: '漫剧1组', personName: '小李', personId: 'P008', allocated: 35000, used: 28000, remaining: 5000 }
+])
+
+const availableAccounts = computed(() => {
+  return [
+    { id: 201, nature: '普通' },
+    { id: 202, nature: '普通' },
+    { id: 203, nature: '公司' },
+    { id: 204, nature: '普通' },
+    { id: 205, nature: '普通' },
+    { id: 206, nature: '超级管理员' }
+  ]
+})
+
+const personnelList = ref([
+  { id: 'P001', name: '王开发', department: '公司', boundAccount: 101 },
+  { id: 'P002', name: '赵老板', department: '公司', boundAccount: 102 },
+  { id: 'P003', name: '杜总', department: '漫剧部', boundAccount: 103 },
+  { id: 'P004', name: '刘总', department: '漫剧部', boundAccount: 104 },
+  { id: 'P005', name: '张经理', department: '电商部', boundAccount: 105 },
+  { id: 'P006', name: '马经理', department: '电商部', boundAccount: null },
+  { id: 'P007', name: '小关', department: '漫剧1组', boundAccount: 107 },
+  { id: 'P008', name: '小李', department: '漫剧1组', boundAccount: 108 },
+  { id: 'P009', name: '小王', department: '电商1组', boundAccount: null },
+  { id: 'P010', name: '小张', department: '漫剧2组', boundAccount: null }
 ])
 
 const filteredAccounts = computed(() => {
@@ -378,14 +467,39 @@ const selectedAccount = ref(null)
 
 const showAddModal = ref(false)
 const addForm = ref({
-  nature: '普通',
-  department: '公司',
-  personName: '',
+  accountId: '',
+  nature: '',
+  department: '',
+  personId: '',
+  newPersonName: '',
+  newPersonDepartment: '',
   allocated: ''
 })
 
+const showNewPersonForm = ref(false)
+
+const selectedAccountNature = computed(() => {
+  if (!addForm.value.accountId) return '请先选择账号'
+  const account = availableAccounts.value.find(a => a.id === addForm.value.accountId)
+  return account ? account.nature : ''
+})
+
+const selectedPersonInfo = computed(() => {
+  if (!addForm.value.personId || addForm.value.personId === '__new__') return null
+  return personnelList.value.find(p => p.id === addForm.value.personId)
+})
+
 const openAddModal = () => {
-  addForm.value = { nature: '普通', department: '公司', personName: '', allocated: '' }
+  addForm.value = {
+    accountId: '',
+    nature: '',
+    department: '',
+    personId: '',
+    newPersonName: '',
+    newPersonDepartment: '',
+    allocated: ''
+  }
+  showNewPersonForm.value = false
   showAddModal.value = true
   nextTick(() => {
     if (window.lucide) lucide.createIcons()
@@ -394,17 +508,91 @@ const openAddModal = () => {
 
 const closeAddModal = () => {
   showAddModal.value = false
+  showNewPersonForm.value = false
+}
+
+const onPersonSelect = () => {
+  if (addForm.value.personId === '__new__') {
+    showNewPersonForm.value = true
+  } else {
+    showNewPersonForm.value = false
+  }
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
+const replacePersonBinding = () => {
+  const confirmed = confirm(`确定要替换 ${selectedPersonInfo.value.name} 的当前绑定账号吗？\n这将解除其与账号 #${selectedPersonInfo.value.boundAccount} 的绑定。`)
+  if (confirmed) {
+    console.log(`🔄 替换人员绑定: ${selectedPersonInfo.value.name}`)
+    alert(`已准备替换 ${selectedPersonInfo.value.name} 的绑定，请完成分配操作`)
+  }
 }
 
 const submitAddAccount = () => {
-  const newId = Math.max(...accounts.value.map(a => a.id)) + 1
+  if (!addForm.value.accountId) {
+    alert('请选择要分配的账号')
+    return
+  }
+
+  if (!addForm.value.personId) {
+    alert('请选择关联人员')
+    return
+  }
+
+  let personName = ''
+  let personId = ''
+
+  if (addForm.value.personId === '__new__') {
+    if (!addForm.value.newPersonName.trim()) {
+      alert('请输入新人员姓名')
+      return
+    }
+    if (!addForm.value.newPersonDepartment) {
+      alert('请选择新人员的所属部门')
+      return
+    }
+
+    const newPersonId = `P${String(Date.now()).slice(-3)}`
+    personName = addForm.value.newPersonName.trim()
+    personId = newPersonId
+
+    personnelList.value.push({
+      id: newPersonId,
+      name: personName,
+      department: addForm.value.newPersonDepartment,
+      boundAccount: addForm.value.accountId
+    })
+
+    console.log(`✨ 新增人员: ${personName} (${newPersonId})`)
+  } else {
+    const selectedPerson = personnelList.value.find(p => p.id === addForm.value.personId)
+    personName = selectedPerson.name
+    personId = selectedPerson.id
+
+    if (selectedPerson.boundAccount) {
+      console.log(`🔄 替换绑定: ${personName} 从账号 #${selectedPerson.boundAccount} → #${addForm.value.accountId}`)
+
+      const oldAccount = accounts.value.find(a => a.id === selectedPerson.boundAccount)
+      if (oldAccount) {
+        oldAccount.personName = null
+        oldAccount.personId = null
+      }
+    }
+
+    selectedPerson.boundAccount = addForm.value.accountId
+  }
+
+  const account = availableAccounts.value.find(a => a.id === addForm.value.accountId)
   const allocated = addForm.value.allocated ? parseInt(addForm.value.allocated) : 0
+
   accounts.value.push({
-    id: newId,
-    nature: addForm.value.nature,
-    department: addForm.value.department,
-    personId: '',
-    personName: addForm.value.personName,
+    id: addForm.value.accountId,
+    nature: account.nature,
+    department: addForm.value.department || account.nature === '超级管理员' ? '公司' : addForm.value.department,
+    personId: personId,
+    personName: personName,
     allocated: allocated,
     used: 0,
     remaining: allocated,
@@ -412,27 +600,24 @@ const submitAddAccount = () => {
     video: 0, image: 0, text: 0, audio: 0, avatar: 0,
     orders: []
   })
+
+  const availableIndex = availableAccounts.value.findIndex(a => a.id === addForm.value.accountId)
+  if (availableIndex > -1) {
+    availableAccounts.value.splice(availableIndex, 1)
+  }
+
   accountPool.value.allocated += 1
-  accountPool.value.available = accountPool.value.total - accountPool.value.allocated - accountPool.value.recycled
+  accountPool.value.available = Math.max(0, accountPool.value.total - accountPool.value.allocated - accountPool.value.recycled)
 
-  const syncResult = enterpriseStore.syncAccountToPersonnel({
-    id: newId,
-    personName: addForm.value.personName,
-    department: addForm.value.department,
-    allocated: allocated
-  })
-  console.log(`📋 账号同步到人员管理: ${syncResult.action}`, syncResult.person)
-
-  const quotaResult = enterpriseStore.addAccountToQuotaList({
-    id: newId,
-    nature: addForm.value.nature,
-    personName: addForm.value.personName,
-    department: addForm.value.department,
-    allocated: allocated
-  })
-  console.log(`💰 账号同步到额度分配: ${quotaResult.action}`, quotaResult.quotaAccount)
+  console.log(`📋 账号分配成功:`)
+  console.log(`  - 账号ID: ${addForm.value.accountId}`)
+  console.log(`  - 账号性质: ${account.nature}`)
+  console.log(`  - 关联人员: ${personName} (${personId})`)
+  console.log(`  - 所属部门: ${addForm.value.department}`)
+  console.log(`  - 初始配额: ¥${allocated}`)
 
   showAddModal.value = false
+  alert(`账号 #${addForm.value.accountId} 已成功分配给 ${personName}`)
 }
 
 const getTypeBadgeClass = (type) => {
@@ -986,5 +1171,86 @@ onMounted(() => {
 .btn-submit:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.new-person-form {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1.5px solid #bae6fd;
+}
+
+.person-info-display {
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.info-card {
+  background: white;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 10px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.info-row:not(:last-child) {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #6b7280;
+  min-width: 90px;
+  display: inline-block;
+}
+
+.info-value {
+  color: #111827;
+  font-weight: 500;
+}
+
+.info-row.warning .info-label {
+  color: #f59e0b;
+}
+
+.info-row.warning .info-value {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.btn-replace-person {
+  width: 100%;
+  padding: 9px 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1.5px solid #f59e0b;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-replace-person:hover {
+  background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 </style>

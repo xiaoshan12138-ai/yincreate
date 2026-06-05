@@ -63,16 +63,38 @@
 
         <!-- 账号密码模式 -->
         <template v-if="authMode === 'account'">
+          <!-- 用户类型选择 -->
           <div class="form-group">
-            <label class="form-label">邮箱地址</label>
+            <label class="form-label">登录身份</label>
+            <div class="user-type-tabs">
+              <button
+                type="button"
+                :class="['user-type-tab', { active: userType === 'employee' }]"
+                @click="userType = 'employee'"
+              >企业账号</button>
+              <button
+                type="button"
+                :class="['user-type-tab', { active: userType === 'enterprise' }]"
+                @click="userType = 'enterprise'"
+              >企业</button>
+              <button
+                type="button"
+                :class="['user-type-tab', { active: userType === 'admin' }]"
+                @click="userType = 'admin'"
+              >系统管理员</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{{ loginIdLabel }}</label>
             <input
-              v-model="email"
-              type="email"
+              v-model="loginId"
+              type="text"
               class="form-input"
-              placeholder="请输入邮箱"
-              :class="{ error: errors.email }"
+              :placeholder="loginIdPlaceholder"
+              :class="{ error: errors.loginId }"
             >
-            <span v-if="errors.email" class="error-message">{{ errors.email }}</span>
+            <span v-if="errors.loginId" class="error-message">{{ errors.loginId }}</span>
           </div>
 
           <div class="form-group">
@@ -148,6 +170,9 @@
           {{ isLoading ? '登录中...' : (isRegister ? '注册' : '登录') }}
         </button>
 
+        <!-- 登录错误提示 -->
+        <div v-if="loginError" class="login-error">{{ loginError }}</div>
+
         <!-- 分隔线 -->
         <div class="divider">
           <span>或</span>
@@ -179,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 
@@ -189,18 +214,38 @@ const userStore = useUserStore()
 
 const isRegister = ref(false)
 const authMode = ref('account')
-const email = ref('')
+const loginId = ref('')
 const password = ref('')
 const phone = ref('')
 const code = ref('')
+const userType = ref('employee')
 const showPassword = ref(false)
 const rememberMe = ref(false)
 const isLoading = ref(false)
+const loginError = ref('')
 const codeCountdown = ref(0)
 
 const errors = reactive({})
 
 let countdownTimer = null
+
+const loginIdLabel = computed(() => {
+  if (userType.value === 'admin') return '管理员名称'
+  if (userType.value === 'enterprise') return '企业ID'
+  return '账号ID / 邮箱'
+})
+
+const loginIdPlaceholder = computed(() => {
+  if (userType.value === 'admin') return '请输入管理员名称'
+  if (userType.value === 'enterprise') return '请输入企业ID'
+  return '请输入账号ID或邮箱'
+})
+
+function getDefaultRouteByRole(type) {
+  if (type === 'admin') return '/admin'
+  if (type === 'enterprise') return '/enterprise/bi'
+  return '/'
+}
 
 function sendCode() {
   if (!phone.value.trim()) {
@@ -224,17 +269,15 @@ function sendCode() {
 
 function validate() {
   Object.keys(errors).forEach(key => delete errors[key])
+  loginError.value = ''
 
   if (authMode.value === 'account') {
-    if (!email.value.trim()) errors.email = '请输入邮箱'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) errors.email = '邮箱格式不正确'
-
+    if (!loginId.value.trim()) errors.loginId = '请输入登录账号'
     if (!password.value.trim()) errors.password = '请输入密码'
-    else if (password.value.length < 6) errors.password = '密码至少6位'
+    else if (password.value.length < 1) errors.password = '请输入密码'
   } else {
     if (!phone.value.trim()) errors.phone = '请输入手机号'
     else if (!/^1\d{10}$/.test(phone.value)) errors.phone = '手机号格式不正确'
-
     if (!code.value.trim()) errors.code = '请输入验证码'
   }
 
@@ -245,26 +288,39 @@ async function handleLogin() {
   if (!validate()) return
 
   isLoading.value = true
+  loginError.value = ''
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    const mockUser = {
-      id: 10086,
-      name: '创作者小明',
-      avatar: '👤',
-      isVip: true,
-      vipExpiry: '2025-06-30',
-      joinDate: '2024-01-15',
-      stats: { works: 36, drafts: 12, favorites: 8, assets: 128 },
-      storage: { used: 23.6, total: 100, unit: 'GB' }
+    if (authMode.value === 'account') {
+      await userStore.login({
+        login_id: loginId.value.trim(),
+        password: password.value,
+        user_type: userType.value
+      })
+    } else {
+      // 手机验证码模式暂未实现后端接口
+      loginError.value = '手机验证码登录暂未开放'
+      isLoading.value = false
+      return
     }
 
-    userStore.setUser(mockUser)
-
-    router.push({ path: '/', query: { showRealNameTip: 'true' } })
+    // 登录成功，按角色跳转到对应页面（优先使用 redirect 参数）
+    const redirect = route.query.redirect || getDefaultRouteByRole(userType.value)
+    router.push(redirect)
   } catch (error) {
-    console.error('登录失败:', error)
+    // 根据错误码显示中文提示
+    const code = error.code || ''
+    if (code === 'NETWORK_ERROR') {
+      loginError.value = '无法连接到服务器，请检查后端服务是否已启动'
+    } else if (code === 'INVALID_CREDENTIALS') {
+      loginError.value = '账号或密码错误'
+    } else if (code === 'ACCOUNT_DISABLED') {
+      loginError.value = '账号已被禁用，请联系管理员'
+    } else if (code === 'INVALID_USER_TYPE') {
+      loginError.value = '登录身份类型无效'
+    } else {
+      loginError.value = error.message || '登录失败，请稍后重试'
+    }
   } finally {
     isLoading.value = false
   }
@@ -533,6 +589,45 @@ onMounted(() => {
   color: #ef4444;
   margin-top: 6px;
   font-weight: 500;
+}
+
+.user-type-tabs {
+  display: flex;
+  gap: 6px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.user-type-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-type-tab.active {
+  background: white;
+  color: #111827;
+  box-shadow: var(--shadow-sm);
+}
+
+.login-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
 }
 
 .form-options {

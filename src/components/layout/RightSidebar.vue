@@ -32,15 +32,20 @@
     <div class="sidebar-section">
       <div class="sidebar-section-header">
         <h3 class="sidebar-section-title">平台公告</h3>
-        <a href="#" class="section-link-small">查看更多</a>
+        <router-link to="/announcement" class="section-link-small">查看更多</router-link>
       </div>
       <div class="announcement-list">
-        <div v-for="item in announcements" :key="item.id" class="announcement-item">
-          <span :class="['announcement-tag', `tag-${item.type}`]">
-            【{{ item.tag }}】
+        <div
+          v-for="item in announcements"
+          :key="item.id"
+          class="announcement-item"
+          @click="goToAnnouncement(item.id)"
+        >
+          <span :class="['announcement-tag', `tag-${item.type || item.category}`]">
+            【{{ item.tag || getCategoryLabel(item.category) }}】
           </span>
-          <span class="announcement-text">{{ item.text }}</span>
-          <span class="announcement-date">{{ item.date }}</span>
+          <span class="announcement-text">{{ item.text || item.title }}</span>
+          <span class="announcement-date">{{ item.date || formatDate(item.published_at) }}</span>
         </div>
       </div>
     </div>
@@ -67,8 +72,12 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { userData } from '../../data/userData'
+import { getLatestAnnouncementsApi } from '../../api/announcement'
+
+const router = useRouter()
 
 const userStats = [
   { value: userData.user.stats.works, label: '我的作品' },
@@ -77,13 +86,51 @@ const userStats = [
   { value: userData.user.stats.assets, label: '素材库' }
 ]
 
-const announcements = userData.announcements
+const announcements = ref(userData.announcements)
 const recommendedTools = userData.recommendedTools
+
+const categoryLabels = {
+  update: '功能更新',
+  event: '活动',
+  tutorial: '教程'
+}
+
+function getCategoryLabel(key) {
+  return categoryLabels[key] || key
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function goToAnnouncement(id) {
+  router.push(`/announcement/${id}`)
+}
+
+async function fetchLatestAnnouncements() {
+  try {
+    const res = await getLatestAnnouncementsApi({ limit: 5 })
+    if (res.data && res.data.length > 0) {
+      announcements.value = res.data.map(item => ({
+        id: item.id,
+        tag: getCategoryLabel(item.category),
+        type: item.category,
+        text: item.title,
+        date: formatDate(item.published_at || item.created_at)
+      }))
+    }
+  } catch (e) {
+    // 使用本地默认数据
+  }
+}
 
 onMounted(() => {
   if (window.lucide) {
     lucide.createIcons()
   }
+  fetchLatestAnnouncements()
 })
 </script>
 

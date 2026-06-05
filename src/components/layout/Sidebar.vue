@@ -64,14 +64,21 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const navItems = [
+const allNavItems = [
   { id: 'home', label: '首页', icon: 'home', path: '/' },
   { id: 'generate', label: '生成', icon: 'sparkles', path: '/generate' },
   { id: 'tools', label: '全部工具', icon: 'layout-grid', path: '/tools' },
   { id: 'community', label: '社区', icon: 'users', path: '/community' },
+  { id: 'announcement', label: '公告', icon: 'megaphone', path: '/announcement' },
   { id: 'assets', label: '资产', icon: 'folder-open', path: '/assets' },
-  { id: 'enterprise', label: '企业管理', icon: 'building-2', path: '/enterprise/bi' }
+  { id: 'enterprise', label: '企业管理', icon: 'building-2', path: '/enterprise/bi', requireRole: ['enterprise', 'admin'] }
 ]
+
+const navItems = computed(() => {
+  const userType = userStore.user?.user_type
+  // 企业管理员和系统管理员可见企业管理菜单，公司账号（employee）不可见
+  return allNavItems.filter(item => !item.requireRole || item.requireRole.includes(userType))
+})
 
 const storageUsed = computed(() => `${userData.user.storage.used}${userData.user.storage.unit}`)
 const storageTotal = computed(() => `${userData.user.storage.total}${userData.user.storage.unit}`)

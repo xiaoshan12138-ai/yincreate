@@ -20,6 +20,39 @@ export function setStorage(key, value) {
   }
 }
 
+/**
+ * 带过期时间的存储（毫秒）
+ */
+export function setStorageWithExpiry(key, value, ttlMs) {
+  try {
+    const data = { value, expiresAt: Date.now() + ttlMs }
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(data))
+    return true
+  } catch (error) {
+    console.error('Error writing to localStorage:', error)
+    return false
+  }
+}
+
+/**
+ * 读取带过期时间的存储，过期返回 null 并自动清除
+ */
+export function getStorageWithExpiry(key) {
+  try {
+    const item = localStorage.getItem(STORAGE_PREFIX + key)
+    if (!item) return null
+    const data = JSON.parse(item)
+    if (data.expiresAt && Date.now() > data.expiresAt) {
+      removeStorage(key)
+      return null
+    }
+    return data.value
+  } catch (error) {
+    console.error('Error reading from localStorage:', error)
+    return null
+  }
+}
+
 export function removeStorage(key) {
   try {
     localStorage.removeItem(STORAGE_PREFIX + key)

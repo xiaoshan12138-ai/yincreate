@@ -64,6 +64,10 @@ function goToProfile() {
   router.push('/profile')
 }
 
+function goToAssets() {
+  router.push('/assets')
+}
+
 onMounted(() => {
   if (!userStore.isLoggedIn) {
     userStore.setUser(userData.user)
@@ -158,6 +162,28 @@ onMounted(() => {
 
 .notification-btn {
   position: relative;
+}
+
+.asset-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  padding: 0 12px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  color: #4338ca;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.asset-nav-btn:hover {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.asset-nav-label {
+  white-space: nowrap;
 }
 
 .notification-badge {
