@@ -81,13 +81,6 @@
                     </button>
                   </div>
                   <div class="upload-menu-divider"></div>
-                  <div class="upload-menu-section">
-                    <div class="upload-section-title">云资料库</div>
-                    <button class="upload-option cloud-option" @click="openCloudLibrary">
-                      <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
-                      从云资料库选择
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -496,9 +489,6 @@
                       <button class="result-action-btn" @click="downloadResult(result, idx)" title="下载">
                         <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                       </button>
-                      <button class="result-action-btn" @click="saveToCloudLibrary(result, idx)" title="保存到资产库">
-                        <i data-lucide="bookmark" style="width: 14px; height: 14px;"></i>
-                      </button>
                       <button class="result-action-btn" @click="useAsInput(result)" title="作为输入">
                         <i data-lucide="repeat" style="width: 14px; height: 14px;"></i>
                       </button>
@@ -564,13 +554,6 @@
                     </button>
                   </div>
                   <div class="upload-menu-divider"></div>
-                  <div class="upload-menu-section">
-                    <div class="upload-section-title">云资料库</div>
-                    <button class="upload-option cloud-option" @click="openCloudLibrary">
-                      <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
-                      从云资料库选择
-                    </button>
-                  </div>
                 </div>
               </div>
               <div class="prompt-editor-wrapper" ref="editorWrapperRefBottom">
@@ -857,64 +840,6 @@
       </main>
     </div>
 
-    <!-- 云资料库弹窗 -->
-    <Teleport to="body">
-      <div v-if="showCloudLibrary" class="cloud-library-modal-overlay" @click.self="closeCloudLibrary">
-        <div class="cloud-library-modal">
-          <div class="cloud-modal-header">
-            <h3 class="cloud-modal-title">
-              <i data-lucide="cloud" style="width: 20px; height: 20px;"></i>
-              云资料库
-            </h3>
-            <button class="cloud-modal-close" @click="closeCloudLibrary">
-              <i data-lucide="x" style="width: 18px; height: 18px;"></i>
-            </button>
-          </div>
-          <div class="cloud-search-bar">
-            <i data-lucide="search" style="width: 18px; height: 18px; color: #9ca3af;"></i>
-            <input type="text" class="cloud-search-input" v-model="cloudSearchKeyword" placeholder="搜索文件..." />
-          </div>
-          <div class="cloud-filter-tabs">
-            <button v-for="tab in cloudFilterTabs" :key="tab.id" :class="['cloud-tab', { active: cloudActiveTab === tab.id }]" @click="cloudActiveTab = tab.id">
-              <i :data-lucide="tab.icon" style="width: 14px; height: 14px;"></i>
-              {{ tab.label }}
-            </button>
-          </div>
-          <div class="cloud-files-container">
-            <div v-if="filteredCloudFiles.length === 0" class="cloud-empty-state">
-              <i data-lucide="folder-open" style="width: 48px; height: 48px;"></i>
-              <p>暂无文件</p>
-              <p class="cloud-empty-hint">请先上传文件到云资料库</p>
-            </div>
-            <div v-else class="cloud-files-grid">
-              <div v-for="file in filteredCloudFiles" :key="file.id" :class="['cloud-file-item', { selected: isCloudFileSelected(file) }]" @click="toggleCloudFileSelection(file)">
-                <div class="cloud-file-thumb">
-                  <img v-if="file.type === 'image' && file.thumbnail" :src="file.thumbnail" :alt="file.name" class="cloud-file-thumb-img" />
-                  <video v-else-if="file.type === 'video'" :src="file.url" class="cloud-video-thumb" muted />
-                  <div v-else :class="['cloud-file-placeholder', `placeholder-${file.type}`]">
-                    <i :data-lucide="file.type === 'audio' ? 'music' : 'file'" style="width: 28px; height: 28px;"></i>
-                  </div>
-                  <div v-if="isCloudFileSelected(file)" class="cloud-selected-check">
-                    <i data-lucide="check" style="width: 16px; height: 16px;"></i>
-                  </div>
-                </div>
-                <div class="cloud-file-info">
-                  <p class="cloud-file-name">{{ file.name }}</p>
-                  <p class="cloud-file-meta">{{ formatCloudFileSize(file.size) }} · {{ file.uploadTime }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="cloud-modal-footer">
-            <span class="cloud-selection-info">已选 {{ selectedCloudFiles.length }} 个文件</span>
-            <div class="cloud-actions">
-              <button class="cloud-btn-secondary" @click="closeCloudLibrary">取消</button>
-              <button class="cloud-btn-primary" :disabled="selectedCloudFiles.length === 0" @click="confirmCloudSelection">确认选择</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </AppLayout>
 </template>
 
@@ -2195,10 +2120,6 @@ function downloadResult(result, idx) {
   document.body.removeChild(link)
 }
 
-function saveToCloudLibrary(result, idx) {
-  showToast('已保存到资产库', 'success')
-}
-
 // ========== 文件历史管理 ==========
 const fileHistory = ref([])
 
@@ -2238,75 +2159,6 @@ function showToast(msg, type = 'info') {
   toastType.value = type
   toastVisible.value = true
   setTimeout(() => { toastVisible.value = false }, 3000)
-}
-
-// ========== 云资料库 ==========
-const showCloudLibrary = ref(false)
-const cloudSearchKeyword = ref('')
-const cloudActiveTab = ref('all')
-const selectedCloudFiles = ref([])
-
-const cloudFilterTabs = [
-  { id: 'all', label: '全部', icon: 'layers' },
-  { id: 'image', label: '图片', icon: 'image' },
-  { id: 'video', label: '视频', icon: 'video' },
-  { id: 'audio', label: '音频', icon: 'music' }
-]
-
-const cloudFiles = ref([
-  { id: 1, name: '风景参考图.jpg', type: 'image', size: 2048576, thumbnail: '', url: '', uploadTime: '2026-06-01' },
-  { id: 2, name: '人物肖像.png', type: 'image', size: 1536000, thumbnail: '', url: '', uploadTime: '2026-05-28' },
-  { id: 3, name: '产品展示.mp4', type: 'video', size: 15728640, url: '', uploadTime: '2026-05-25' },
-  { id: 4, name: '背景音乐.mp3', type: 'audio', size: 5242880, url: '', uploadTime: '2026-05-20' }
-])
-
-const filteredCloudFiles = computed(() => {
-  let files = cloudFiles.value
-  if (cloudActiveTab.value !== 'all') {
-    files = files.filter(f => f.type === cloudActiveTab.value)
-  }
-  if (cloudSearchKeyword.value.trim()) {
-    const kw = cloudSearchKeyword.value.toLowerCase()
-    files = files.filter(f => f.name.toLowerCase().includes(kw))
-  }
-  return files
-})
-
-function openCloudLibrary() {
-  showCloudLibrary.value = true
-}
-
-function closeCloudLibrary() {
-  showCloudLibrary.value = false
-  selectedCloudFiles.value = []
-}
-
-function isCloudFileSelected(file) {
-  return selectedCloudFiles.value.some(f => f.id === file.id)
-}
-
-function toggleCloudFileSelection(file) {
-  const idx = selectedCloudFiles.value.findIndex(f => f.id === file.id)
-  if (idx >= 0) {
-    selectedCloudFiles.value.splice(idx, 1)
-  } else {
-    selectedCloudFiles.value.push(file)
-  }
-}
-
-function confirmCloudSelection() {
-  for (const file of selectedCloudFiles.value) {
-    addFileFromHistory({ type: file.type, url: file.url || '', name: file.name })
-  }
-  closeCloudLibrary()
-  nextTick(() => { if (window.lucide) lucide.createIcons() })
-}
-
-function formatCloudFileSize(bytes) {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
-  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB'
-  return (bytes / 1073741824).toFixed(1) + ' GB'
 }
 
 // ========== 获取认证 Token ==========
@@ -2957,56 +2809,6 @@ function handleGlobalClick(e) {
 .upload-option:hover {
   background: #f3f4f6;
   color: #111827;
-}
-
-.cloud-option {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
-  color: #2563eb !important;
-  font-weight: 500 !important;
-}
-
-.cloud-option:hover {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
-}
-
-/* 云资料库按钮 */
-.cloud-btn-secondary,
-.cloud-btn-primary {
-  padding: 9px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.cloud-btn-secondary {
-  background: white;
-  border: 1.5px solid #d1d5db;
-  color: #6b7280;
-}
-
-.cloud-btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-  color: #374151;
-}
-
-.cloud-btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border: none;
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
-}
-
-.cloud-btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.45);
-}
-
-.cloud-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* 媒体素材栏 */
