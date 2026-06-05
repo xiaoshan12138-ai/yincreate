@@ -53,11 +53,6 @@
       <main class="jimeng-main-area">
         <!-- ====== 未交互状态：欢迎页 ====== -->
         <div v-if="!hasInteracted" class="jimeng-welcome">
-          <!-- 右上角资产库按钮 -->
-          <button class="page-asset-btn" @click="openCloudLibrary" title="资产库">
-            <i data-lucide="package" style="width: 16px; height: 16px;"></i>
-            资产库
-          </button>
           <h1 class="welcome-title">你好，想创作什么？</h1>
 
           <!-- 输入卡片 -->
@@ -457,12 +452,6 @@
 
         <!-- ====== 已交互状态：结果展示 + 输入框 ====== -->
         <div v-else class="jimeng-interaction">
-          <!-- 右上角资产库按钮 -->
-          <button class="page-asset-btn" @click="openCloudLibrary" title="资产库">
-            <i data-lucide="package" style="width: 16px; height: 16px;"></i>
-            资产库
-          </button>
-
           <!-- 顶部信息栏 -->
           <div class="interaction-topbar">
             <div class="topbar-context">
