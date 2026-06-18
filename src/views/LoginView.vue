@@ -71,7 +71,7 @@
                 type="button"
                 :class="['user-type-tab', { active: userType === 'employee' }]"
                 @click="userType = 'employee'"
-              >企业账号</button>
+              >员工</button>
               <button
                 type="button"
                 :class="['user-type-tab', { active: userType === 'enterprise' }]"

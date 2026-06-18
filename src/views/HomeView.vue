@@ -217,6 +217,7 @@ const goToProfile = () => {
   display: flex;
   flex-direction: column;
   gap: 0;
+  position: relative;
 }
 
 /* Hero Section - 超紧凑版 */
@@ -835,5 +836,30 @@ const goToProfile = () => {
 .btn-tip-go:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* 响应式适配 */
+@media (max-width: 1200px) {
+  .video-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .quick-start-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .video-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .quick-start-grid {
+    grid-template-columns: 1fr;
+  }
+  .video-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

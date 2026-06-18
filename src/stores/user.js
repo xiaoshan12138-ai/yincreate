@@ -10,12 +10,11 @@ export const useUserStore = defineStore('user', () => {
   const user = ref(getStorage('user', null))
   const accessToken = ref(getStorage('access_token', null))
   const refreshToken = ref(getStorage('refresh_token', null))
+  // 过期标记：响应式 ref，登录/登出时同步更新
+  const loginExpired = ref(!getStorageWithExpiry('loginTime'))
 
-  // 检查登录是否过期
-  const isExpired = !getStorageWithExpiry('loginTime')
-
-  // 过期则清除所有状态
-  if (isExpired && (accessToken.value || user.value)) {
+  // 首次加载时如果已过期，清除所有状态
+  if (loginExpired.value && (accessToken.value || user.value)) {
     user.value = null
     accessToken.value = null
     refreshToken.value = null
@@ -24,7 +23,7 @@ export const useUserStore = defineStore('user', () => {
     removeStorage('refresh_token')
   }
 
-  const isLoggedIn = computed(() => !!accessToken.value && !!user.value && !isExpired)
+  const isLoggedIn = computed(() => !!accessToken.value && !!user.value && !loginExpired.value)
 
   function setTokens(access, refresh) {
     accessToken.value = access
@@ -56,6 +55,7 @@ export const useUserStore = defineStore('user', () => {
     setUser(userInfo)
     // 记录登录时间，7天后过期
     setStorageWithExpiry('loginTime', Date.now(), LOGIN_EXPIRE_MS)
+    loginExpired.value = false
     return userInfo
   }
 
@@ -91,6 +91,7 @@ export const useUserStore = defineStore('user', () => {
     user.value = null
     accessToken.value = null
     refreshToken.value = null
+    loginExpired.value = true
     removeStorage('user')
     removeStorage('access_token')
     removeStorage('refresh_token')

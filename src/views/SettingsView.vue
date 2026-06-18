@@ -464,40 +464,6 @@
             </div>
           </div>
 
-          <!-- ========== 敏感权限 ========== -->
-          <div v-if="activeSection === 'permission'" class="settings-section">
-            <div class="section-header">
-              <div class="section-header-left">
-                <div class="section-icon-wrap" style="background: #fdf4ff;">
-                  <i data-lucide="lock" style="width: 20px; height: 20px; color: #a855f7;"></i>
-                </div>
-                <div>
-                  <div class="section-title">敏感权限</div>
-                  <div class="section-desc">管理系统所需的敏感权限</div>
-                </div>
-              </div>
-            </div>
-
-            <div v-for="(perm, key) in permissionData" :key="key" class="setting-row">
-              <div class="setting-row-left">
-                <div class="setting-row-icon" :style="{ background: perm.granted ? '#dcfce7' : '#fee2e2' }">
-                  <i :data-lucide="getPermissionIcon(key)" style="width: 18px; height: 18px;" :style="{ color: perm.granted ? '#10b981' : '#dc2626' }"></i>
-                </div>
-                <div class="setting-row-info">
-                  <span class="setting-row-label">{{ getPermissionLabel(key) }}</span>
-                  <span class="setting-row-desc">{{ perm.desc }}</span>
-                </div>
-              </div>
-              <div class="setting-row-right">
-                <span :class="['permission-badge', perm.granted ? 'granted' : 'denied']">
-                  <i :data-lucide="perm.granted ? 'check-circle' : 'x-circle'" style="width: 12px; height: 12px;"></i>
-                  {{ perm.granted ? '已授权' : '未授权' }}
-                </span>
-                <button class="setting-row-action" @click="togglePermission(key)">{{ perm.granted ? '关闭' : '开启' }}</button>
-              </div>
-            </div>
-          </div>
-
           <!-- ========== 偏好设置 ========== -->
           <div v-if="activeSection === 'preference'" class="settings-section">
             <div class="section-header">
@@ -611,6 +577,51 @@
               </div>
               <button :class="['toggle-switch', { active: preferenceData.watermark }]" @click="togglePreference('watermark')"></button>
             </div>
+
+            <!-- 网站个性化（企业账号专属） -->
+            <div v-if="userStore.user?.user_type === 'enterprise'" class="site-customization-section">
+              <div class="notify-category-title" style="margin-top: 20px;">网站个性化 <span class="enterprise-only-tag">企业专属</span></div>
+              <div class="setting-row">
+                <div class="setting-row-left">
+                  <div class="setting-row-icon" style="background: #fef3c7;">
+                    <i data-lucide="image" style="width: 18px; height: 18px; color: #f59e0b;"></i>
+                  </div>
+                  <div class="setting-row-info">
+                    <span class="setting-row-label">网站图标</span>
+                    <span class="setting-row-desc">上传自定义网站图标（favicon），建议尺寸 32x32 或 64x64</span>
+                  </div>
+                </div>
+                <div class="setting-row-right">
+                  <div v-if="preferenceData.site_favicon" class="favicon-preview">
+                    <img :src="preferenceData.site_favicon" alt="favicon" class="favicon-img">
+                  </div>
+                  <button class="setting-row-action" @click="triggerFaviconUpload">上传图标</button>
+                  <input ref="faviconInput" type="file" accept="image/*" style="display: none;" @change="handleFaviconUpload">
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-row-left">
+                  <div class="setting-row-icon" style="background: #eef2ff;">
+                    <i data-lucide="type" style="width: 18px; height: 18px; color: #3b82f6;"></i>
+                  </div>
+                  <div class="setting-row-info">
+                    <span class="setting-row-label">网站标题</span>
+                    <span class="setting-row-desc">自定义浏览器标签页显示的标题</span>
+                  </div>
+                </div>
+                <div class="setting-row-right">
+                  <input type="text" v-model="preferenceData.site_title" class="site-title-input" placeholder="请输入网站标题">
+                </div>
+              </div>
+
+              <div class="site-customization-actions">
+                <button class="site-save-btn" @click="saveSiteCustomization">
+                  <i data-lucide="save" style="width: 14px; height: 14px;"></i>
+                  保存网站设置
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- 登出按钮 -->
@@ -639,9 +650,12 @@ import { useRouter } from 'vue-router'
 import AppLayout from '../components/layout/AppLayout.vue'
 import { userData } from '../data/userData'
 import { useUserStore } from '../stores/user'
+import { useAppStore } from '../stores/app'
+import { getSiteCustomizationApi, saveSiteCustomizationApi, uploadFaviconApi } from '../api/profile'
 
 const router = useRouter()
 const userStore = useUserStore()
+const appStore = useAppStore()
 
 const activeSection = ref('profile')
 
@@ -652,7 +666,6 @@ const settingsSections = ref([
   { key: 'password', label: '密码设置', icon: 'key-round' },
   { key: 'notification', label: '通知设置', icon: 'bell' },
   { key: 'privacy', label: '隐私设置', icon: 'shield' },
-  { key: 'permission', label: '敏感权限', icon: 'lock' },
   { key: 'preference', label: '偏好设置', icon: 'palette' }
 ])
 
@@ -705,24 +718,15 @@ const privacyData = reactive({
   showActivity: true
 })
 
-const permissionData = reactive({
-  camera: { granted: true, desc: '用于视频拍摄和头像上传' },
-  microphone: { granted: true, desc: '用于语音录制和AI配音' },
-  location: { granted: false, desc: '用于本地化内容推荐' },
-  contacts: { granted: false, desc: '用于邀请好友功能' },
-  storage: { granted: true, desc: '用于保存作品和素材' },
-  clipboard: { granted: true, desc: '用于复制粘贴文本内容' },
-  notification: { granted: true, desc: '用于推送消息通知' },
-  biometric: { granted: false, desc: '用于指纹/面容快速登录' }
-})
-
 const preferenceData = reactive({
   language: 'zh-CN',
   theme: 'light',
   fontSize: 'medium',
   autoSave: true,
   hdExport: false,
-  watermark: true
+  watermark: true,
+  site_favicon: '',
+  site_title: ''
 })
 
 const toast = reactive({
@@ -810,44 +814,52 @@ const savePrivacy = () => {
   showToast('隐私设置已保存')
 }
 
-const togglePermission = (key) => {
-  permissionData[key].granted = !permissionData[key].granted
-}
-
-const getPermissionIcon = (key) => {
-  const icons = {
-    camera: 'camera',
-    microphone: 'mic',
-    location: 'map-pin',
-    contacts: 'users',
-    storage: 'hard-drive',
-    clipboard: 'clipboard',
-    notification: 'bell',
-    biometric: 'fingerprint'
-  }
-  return icons[key] || 'lock'
-}
-
-const getPermissionLabel = (key) => {
-  const labels = {
-    camera: '相机权限',
-    microphone: '麦克风权限',
-    location: '位置权限',
-    contacts: '通讯录权限',
-    storage: '存储权限',
-    clipboard: '剪贴板权限',
-    notification: '通知权限',
-    biometric: '生物识别权限'
-  }
-  return labels[key] || key
-}
-
 const togglePreference = (key) => {
   preferenceData[key] = !preferenceData[key]
 }
 
 const savePreference = () => {
   showToast('偏好设置已保存')
+}
+
+const faviconInput = ref(null)
+
+const triggerFaviconUpload = () => {
+  faviconInput.value?.click()
+}
+
+const handleFaviconUpload = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await uploadFaviconApi(formData)
+    preferenceData.site_favicon = res.data.url
+    showToast('图标上传成功')
+    nextTick(() => {
+      if (window.lucide) lucide.createIcons()
+    })
+  } catch (e) {
+    showToast('图标上传失败', 'error')
+  }
+}
+
+const saveSiteCustomization = async () => {
+  try {
+    await saveSiteCustomizationApi({
+      favicon_url: preferenceData.site_favicon,
+      site_title: preferenceData.site_title
+    })
+    // 通过 appStore 持久化并应用（写入 localStorage + 更新浏览器标签页）
+    appStore.setSiteCustomization({
+      favicon_url: preferenceData.site_favicon,
+      site_title: preferenceData.site_title
+    })
+    showToast('网站个性化设置已保存')
+  } catch (e) {
+    showToast('保存失败', 'error')
+  }
 }
 
 const handleLogout = async () => {
@@ -858,7 +870,26 @@ const handleLogout = async () => {
   }, 800)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 企业账号从后端获取网站个性化设置
+  if (userStore.user?.user_type === 'enterprise') {
+    try {
+      const res = await getSiteCustomizationApi()
+      preferenceData.site_favicon = res.data.favicon_url || ''
+      preferenceData.site_title = res.data.site_title || ''
+      // 同步到 appStore（持久化）
+      if (res.data.favicon_url || res.data.site_title) {
+        appStore.setSiteCustomization({
+          favicon_url: res.data.favicon_url,
+          site_title: res.data.site_title
+        })
+      }
+    } catch (e) {
+      // 后端获取失败，使用 appStore 本地缓存
+      preferenceData.site_favicon = appStore.siteFavicon
+      preferenceData.site_title = appStore.siteTitle
+    }
+  }
   setTimeout(() => {
     if (window.lucide) lucide.createIcons()
   }, 100)
@@ -1519,5 +1550,86 @@ onMounted(() => {
 
 .toast.success .toast-icon {
   color: #10b981;
+}
+
+/* 网站个性化 */
+.site-customization-section {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 16px;
+  padding-top: 8px;
+}
+
+.enterprise-only-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #92400e;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.favicon-preview {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1.5px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+}
+
+.favicon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.site-title-input {
+  padding: 7px 12px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: white;
+  outline: none;
+  width: 200px;
+  transition: all 0.2s ease;
+}
+
+.site-title-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.site-customization-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.site-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.site-save-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 </style>

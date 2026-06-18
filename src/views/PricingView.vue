@@ -268,7 +268,9 @@ onMounted(() => {
 
 .pricing-main {
   width: 920px;
-  flex-shrink: 0;
+  max-width: 100%;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .recharge-banner {
@@ -644,7 +646,9 @@ onMounted(() => {
 
 .pricing-sidebar {
   width: 400px;
-  flex-shrink: 0;
+  max-width: 35%;
+  flex-shrink: 1;
+  min-width: 260px;
   display: flex;
   flex-direction: column;
   gap: 16px;

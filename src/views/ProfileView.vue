@@ -5,23 +5,27 @@
       <!-- 用户信息卡片 - 头像、昵称、VIP状态 -->
       <div class="profile-card">
         <div class="profile-user-section">
-          <img :src="userData.user.avatar" alt="" class="profile-avatar-img" @error="handleImageError">
+          <img :src="userStore.user?.avatar || userData.user.avatar" alt="" class="profile-avatar-img" @error="handleImageError">
           <div class="profile-user-info">
             <div class="profile-name-row">
-              <h3 class="profile-name">{{ userData.user.name }}</h3>
-              <span v-if="userData.user.isVip" class="vip-badge-inline">
+              <h3 class="profile-name">{{ userStore.user?.name || userData.user.name }}</h3>
+              <span v-if="userStore.user?.user_type === 'enterprise'" class="vip-badge-inline">
                 <i data-lucide="crown" style="width: 12px; height: 12px;"></i>
-                VIP
+                企业
+              </span>
+              <span v-else-if="userStore.user?.user_type === 'admin'" class="vip-badge-inline">
+                <i data-lucide="shield" style="width: 12px; height: 12px;"></i>
+                管理员
               </span>
             </div>
-            <p class="profile-id">ID: {{ userData.user.id }}</p>
+            <p class="profile-id">ID: {{ userStore.user?.user_id || userData.user.id }}</p>
             <p class="profile-join-days">
               <i data-lucide="calendar" style="width: 13px; height: 13px;"></i>
-              加入影创 studio 已 {{ userData.user.joinDays }} 天
+              {{ userStore.user?.enterprise_name || '' }}
             </p>
-            <p class="profile-bio">{{ userData.user.bio }}</p>
+            <p class="profile-bio">{{ userStore.user?.email || '' }}</p>
           </div>
-          <button class="edit-profile-btn">编辑资料</button>
+          <button class="edit-profile-btn" @click="$router.push('/settings')">编辑资料</button>
         </div>
       </div>
 
@@ -38,26 +42,40 @@
         </div>
       </div>
 
-      <!-- 会员中心 - VIP信息和权益 -->
+      <!-- 余额中心 - 积分信息 -->
       <div class="section-block">
-        <h3 class="section-title">会员中心</h3>
-        <div class="vip-card">
-          <div class="vip-card-left">
-            <div class="vip-title-row">
-              <i data-lucide="crown" style="width: 20px; height: 20px; color: #f59e0b;"></i>
-              <span class="vip-title">VIP 尊享会员</span>
+        <h3 class="section-title">余额中心</h3>
+        <div class="balance-card">
+          <div class="balance-item">
+            <div class="balance-icon-wrap" style="background: #eef2ff;">
+              <i data-lucide="wallet" style="width: 22px; height: 22px; color: #6366f1;"></i>
             </div>
-            <p class="vip-expiry">有效期至 {{ userData.user.vipExpiry }}</p>
+            <div class="balance-info">
+              <span class="balance-num">{{ pointsData.total_points }}</span>
+              <span class="balance-label">拥有积分</span>
+            </div>
           </div>
-          <button class="manage-vip-btn" @click="$router.push('/pricing')">管理会员</button>
-        </div>
-        <div class="benefits-grid">
-          <div v-for="(benefit, idx) in vipBenefits" :key="idx" class="benefit-item">
-            <i :data-lucide="benefit.icon" style="width: 15px; height: 15px; color: #9ca3af;"></i>
-            <span>{{ benefit.text }}</span>
+          <div class="balance-divider"></div>
+          <div class="balance-item">
+            <div class="balance-icon-wrap" style="background: #fef3c7;">
+              <i data-lucide="trending-down" style="width: 22px; height: 22px; color: #f59e0b;"></i>
+            </div>
+            <div class="balance-info">
+              <span class="balance-num">{{ pointsData.used_points }}</span>
+              <span class="balance-label">已使用积分</span>
+            </div>
+          </div>
+          <div class="balance-divider"></div>
+          <div class="balance-item">
+            <div class="balance-icon-wrap" style="background: #fee2e2;">
+              <i data-lucide="clock" style="width: 22px; height: 22px; color: #ef4444;"></i>
+            </div>
+            <div class="balance-info">
+              <span class="balance-num">{{ pointsData.expired_points }}</span>
+              <span class="balance-label">过期积分</span>
+            </div>
           </div>
         </div>
-        <router-link to="/pricing" class="view-more-link">查看权益详情 ›</router-link>
       </div>
 
       <!-- 安全中心 - 密码、手机、邮箱等安全设置 -->
@@ -241,11 +259,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../components/layout/AppLayout.vue'
 import { userData } from '../data/userData'
 import { useUserStore } from '../stores/user'
+import { getPointsApi } from '../api/profile'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -257,12 +276,11 @@ const userStats = ref([
   { value: 128, label: '素材库', icon: 'folder' }
 ])
 
-const vipBenefits = ref([
-  { text: '无限量视频生成', icon: 'infinity' },
-  { text: '高清导出', icon: 'download' },
-  { text: '专属素材库', icon: 'image' },
-  { text: '优先客服', icon: 'headphones' }
-])
+const pointsData = reactive({
+  total_points: 0,
+  used_points: 0,
+  expired_points: 0
+})
 
 const securityItems = ref([
   { label: '登录密码', desc: '建议定期更换密码以保障账户安全', action: '修改', type: 'password' },
@@ -295,7 +313,6 @@ const accountSettings = ref([
   { label: '个人资料', desc: '头像、昵称、个人简介', icon: 'user', color: '#6366f1' },
   { label: '通知设置', desc: '消息通知、操作通知等', icon: 'bell', color: '#3b82f6' },
   { label: '隐私设置', desc: '隐私权限与数据管理', icon: 'shield', color: '#10b981' },
-  { label: '敏感权限', desc: '敏感权限与数据管理', icon: 'lock', color: '#a855f7' },
   { label: '偏好设置', desc: '界面语言、主题模式等', icon: 'palette', color: '#ec4899' },
   { label: '内容偏好', desc: '推荐内容与屏蔽设置', icon: 'sliders', color: '#f97316' }
 ])
@@ -376,8 +393,17 @@ const submitAuth = () => {
   goToStep(3)
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateQuickEntries()
+  // 获取积分信息
+  try {
+    const res = await getPointsApi()
+    pointsData.total_points = res.data.total_points
+    pointsData.used_points = res.data.used_points
+    pointsData.expired_points = res.data.expired_points
+  } catch (e) {
+    console.error('获取积分信息失败', e)
+  }
   setTimeout(() => {
     if (window.lucide) lucide.createIcons()
   }, 100)
@@ -611,73 +637,55 @@ onMounted(() => {
   margin-bottom: 18px;
 }
 
-.vip-card {
+.balance-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 18px 22px;
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
-  border: 1.5px solid #fde68a;
+  justify-content: space-around;
+  padding: 28px 22px;
+  background: linear-gradient(135deg, #f0f4ff, #eef2ff);
+  border: 1.5px solid #c7d2fe;
   border-radius: var(--radius-lg);
-  margin-bottom: 16px;
 }
 
-.vip-title-row {
+.balance-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 14px;
 }
 
-.vip-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #92400e;
-}
-
-.vip-expiry {
-  font-size: 12px;
-  color: #b45309;
-}
-
-.manage-vip-btn {
-  padding: 9px 22px;
-  background: linear-gradient(135deg, #374151, #1f2937);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.manage-vip-btn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.3);
-}
-
-.benefits-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.benefit-item {
+.balance-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.view-more-link {
-  display: inline-block;
-  font-size: 13px;
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 600;
+.balance-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.balance-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.balance-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.balance-divider {
+  width: 1px;
+  height: 48px;
+  background: #c7d2fe;
 }
 
 .security-list {

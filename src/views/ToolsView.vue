@@ -156,7 +156,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 4px;
-  border-bottom: 1px solid #e5e7eb;
+  
 }
 
 .tabs-nav {

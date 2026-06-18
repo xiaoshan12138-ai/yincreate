@@ -680,10 +680,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 
@@ -1108,7 +1106,7 @@ onMounted(() => {
 .type-视频 { background: #dbeafe; color: #2563eb; }
 .type-图片 { background: #dcfce7; color: #16a34a; }
 .type-文字 { background: #fef3c7; color: #d97706; }
-.type-音频 { background: #ede9fe; color: #7c3aed; }
+.type-音频 { background: #dbeafe; color: #2563eb; }
 .type-数字人 { background: #fce7f3; color: #db2777; }
 
 .order-cost { font-weight: 700; color: var(--text-primary); flex: 1; }

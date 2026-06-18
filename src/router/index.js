@@ -150,7 +150,21 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  document.title = `${to.meta.title || '影创studio'} - 影创studio AI视频创作平台`
+  // 优先使用企业自定义网站标题
+  let customTitle = null
+  try {
+    const stored = localStorage.getItem('szg_site_customization')
+    if (stored) {
+      const data = JSON.parse(stored)
+      customTitle = data.site_title || null
+    }
+  } catch {}
+
+  if (customTitle) {
+    document.title = customTitle
+  } else {
+    document.title = `${to.meta.title || '影创studio'} - 影创studio AI视频创作平台`
+  }
 
   const userStore = useUserStore()
   const userType = userStore.user?.user_type

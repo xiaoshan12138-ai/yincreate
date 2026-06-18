@@ -69,10 +69,6 @@ function goToAssets() {
 }
 
 onMounted(() => {
-  if (!userStore.isLoggedIn) {
-    userStore.setUser(userData.user)
-  }
-
   if (window.lucide) {
     lucide.createIcons()
   }

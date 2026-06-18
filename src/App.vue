@@ -7,18 +7,32 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useUserStore } from './stores/user'
-import { userData } from './data/userData'
+import { useAppStore } from './stores/app'
+import { getSiteCustomizationApi } from './api/profile'
 
 const userStore = useUserStore()
+const appStore = useAppStore()
 
-onMounted(() => {
+onMounted(async () => {
   if (window.lucide) {
     lucide.createIcons()
   }
 
-  if (!userStore.isLoggedIn) {
-    userStore.setUser(userData.user)
+  // 企业账号从后端获取网站个性化设置并应用
+  if (userStore.user?.user_type === 'enterprise') {
+    try {
+      const res = await getSiteCustomizationApi()
+      const { favicon_url, site_title } = res.data
+      if (favicon_url || site_title) {
+        appStore.setSiteCustomization({ favicon_url, site_title })
+      }
+    } catch (e) {
+      // 后端获取失败时使用本地缓存
+    }
   }
+
+  // 应用本地缓存的网站个性化设置
+  appStore.applySiteCustomization()
 })
 </script>
 

@@ -45,7 +45,7 @@
           </div>
         </div>
         <div class="dept-stat-card">
-          <div class="stat-icon-dept" style="background: #fdf4ff; color: #a855f7;">
+          <div class="stat-icon-dept" style="background: #eff6ff; color: #2563eb;">
             <i data-lucide="trending-up" style="width: 20px; height: 20px;"></i>
           </div>
           <div class="stat-info-dept">
@@ -89,13 +89,42 @@
           <thead>
             <tr>
               <th>部门ID</th>
-              <th>部门名称</th>
+              <th class="sortable-th" @click="toggleSort('name')">
+                部门名称
+                <span class="sort-icon" :class="{ active: sortField === 'name' }">
+                  <span class="sort-arrow up" :class="{ active: sortField === 'name' && sortOrder === 'asc' }">▲</span>
+                  <span class="sort-arrow down" :class="{ active: sortField === 'name' && sortOrder === 'desc' }">▼</span>
+                </span>
+              </th>
               <th>上级部门</th>
               <th>关联账号数</th>
-              <th>已分配(¥)</th>
-              <th>已使用(¥)</th>
-              <th>剩余(¥)</th>
+              <th class="sortable-th" @click="toggleSort('allocated')">
+                已分配(¥)
+                <span class="sort-icon" :class="{ active: sortField === 'allocated' }">
+                  <span class="sort-arrow up" :class="{ active: sortField === 'allocated' && sortOrder === 'asc' }">▲</span>
+                  <span class="sort-arrow down" :class="{ active: sortField === 'allocated' && sortOrder === 'desc' }">▼</span>
+                </span>
+              </th>
+              <th class="sortable-th" @click="toggleSort('used')">
+                已使用(¥)
+                <span class="sort-icon" :class="{ active: sortField === 'used' }">
+                  <span class="sort-arrow up" :class="{ active: sortField === 'used' && sortOrder === 'asc' }">▲</span>
+                  <span class="sort-arrow down" :class="{ active: sortField === 'used' && sortOrder === 'desc' }">▼</span>
+                </span>
+              </th>
+              <th class="sortable-th" @click="toggleSort('remaining')">
+                剩余(¥)
+                <span class="sort-icon" :class="{ active: sortField === 'remaining' }">
+                  <span class="sort-arrow up" :class="{ active: sortField === 'remaining' && sortOrder === 'asc' }">▲</span>
+                  <span class="sort-arrow down" :class="{ active: sortField === 'remaining' && sortOrder === 'desc' }">▼</span>
+                </span>
+              </th>
               <th>使用率</th>
+              <th>视频</th>
+              <th>图片</th>
+              <th>文字</th>
+              <th>音频</th>
+              <th>数字人</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -120,6 +149,11 @@
                   <span class="usage-text">{{ (dept.used / dept.allocated * 100).toFixed(1) }}%</span>
                 </div>
               </td>
+              <td class="gen-count-cell">{{ dept.video || 0 }}</td>
+              <td class="gen-count-cell">{{ dept.image || 0 }}</td>
+              <td class="gen-count-cell">{{ dept.text || 0 }}</td>
+              <td class="gen-count-cell">{{ dept.audio || 0 }}</td>
+              <td class="gen-count-cell">{{ dept.avatar || 0 }}</td>
               <td>
                 <div class="action-buttons">
                   <button class="action-btn view-btn" @click="viewDetail(dept)">详情</button>
@@ -209,6 +243,55 @@
                   账号 #{{ accId }}
                 </div>
               </div>
+
+              <h4 class="detail-section-title">生成内容统计</h4>
+              <div class="gen-stats-grid">
+                <div class="gen-stat-card">
+                  <div class="gen-stat-icon" style="background: #eef2ff; color: #6366f1;">
+                    <i data-lucide="video" style="width: 16px; height: 16px;"></i>
+                  </div>
+                  <div class="gen-stat-info">
+                    <span class="gen-stat-value">{{ selectedDept.video || 0 }}</span>
+                    <span class="gen-stat-label">视频</span>
+                  </div>
+                </div>
+                <div class="gen-stat-card">
+                  <div class="gen-stat-icon" style="background: #dbeafe; color: #2563eb;">
+                    <i data-lucide="image" style="width: 16px; height: 16px;"></i>
+                  </div>
+                  <div class="gen-stat-info">
+                    <span class="gen-stat-value">{{ selectedDept.image || 0 }}</span>
+                    <span class="gen-stat-label">图片</span>
+                  </div>
+                </div>
+                <div class="gen-stat-card">
+                  <div class="gen-stat-icon" style="background: #fef3c7; color: #d97706;">
+                    <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+                  </div>
+                  <div class="gen-stat-info">
+                    <span class="gen-stat-value">{{ selectedDept.text || 0 }}</span>
+                    <span class="gen-stat-label">文字</span>
+                  </div>
+                </div>
+                <div class="gen-stat-card">
+                  <div class="gen-stat-icon" style="background: #dcfce7; color: #16a34a;">
+                    <i data-lucide="music" style="width: 16px; height: 16px;"></i>
+                  </div>
+                  <div class="gen-stat-info">
+                    <span class="gen-stat-value">{{ selectedDept.audio || 0 }}</span>
+                    <span class="gen-stat-label">音频</span>
+                  </div>
+                </div>
+                <div class="gen-stat-card">
+                  <div class="gen-stat-icon" style="background: #eff6ff; color: #2563eb;">
+                    <i data-lucide="user-circle" style="width: 16px; height: 16px;"></i>
+                  </div>
+                  <div class="gen-stat-info">
+                    <span class="gen-stat-value">{{ selectedDept.avatar || 0 }}</span>
+                    <span class="gen-stat-label">数字人</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -270,25 +353,49 @@ const activeTab = ref('部门管理')
 const searchQuery = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
+const sortField = ref('')
+const sortOrder = ref('asc')
 
 const departments = ref([
-  { id: 201, name: '公司', parent: '-', accounts: ['101','102'], allocated: 150000, used: 112000, remaining: 33000 },
-  { id: 202, name: '漫剧部', parent: '公司', accounts: ['103','104'], allocated: 155000, used: 115000, remaining: 34000 },
-  { id: 203, name: '电商部', parent: '公司', accounts: ['105','106'], allocated: 115000, used: 80000, remaining: 31000 },
-  { id: 204, name: '漫剧1组', parent: '漫剧部', accounts: ['107','108'], allocated: 75000, used: 63000, remaining: 8000 },
-  { id: 205, name: '漫剧2组', parent: '漫剧部', accounts: ['109','110'], allocated: 74000, used: 55000, remaining: 15000 },
-  { id: 206, name: '电商1组', parent: '电商部', accounts: ['111'], allocated: 30000, used: 20000, remaining: 8000 }
+  { id: 201, name: '公司', parent: '-', accounts: ['101','102'], allocated: 150000, used: 112000, remaining: 33000, video: 43, image: 27, text: 105, audio: 13, avatar: 8 },
+  { id: 202, name: '漫剧部', parent: '公司', accounts: ['103','104'], allocated: 155000, used: 115000, remaining: 34000, video: 57, image: 38, text: 135, audio: 16, avatar: 10 },
+  { id: 203, name: '电商部', parent: '公司', accounts: ['105','106'], allocated: 115000, used: 80000, remaining: 31000, video: 33, image: 55, text: 75, audio: 7, avatar: 5 },
+  { id: 204, name: '漫剧1组', parent: '漫剧部', accounts: ['107','108'], allocated: 75000, used: 63000, remaining: 8000, video: 36, image: 22, text: 92, audio: 9, avatar: 5 },
+  { id: 205, name: '漫剧2组', parent: '漫剧部', accounts: ['109','110'], allocated: 74000, used: 55000, remaining: 15000, video: 19, image: 16, text: 70, audio: 8, avatar: 5 },
+  { id: 206, name: '电商1组', parent: '电商部', accounts: ['111'], allocated: 30000, used: 20000, remaining: 8000, video: 15, image: 28, text: 35, audio: 3, avatar: 3 }
 ])
 
 const filteredDepartments = computed(() => {
-  if (!searchQuery.value.trim()) return departments.value
-  const q = searchQuery.value.toLowerCase()
-  return departments.value.filter(d =>
-    String(d.id).includes(q) ||
-    d.name.toLowerCase().includes(q) ||
-    d.parent.toLowerCase().includes(q)
-  )
+  let result = departments.value
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter(d =>
+      String(d.id).includes(q) ||
+      d.name.toLowerCase().includes(q) ||
+      d.parent.toLowerCase().includes(q)
+    )
+  }
+  if (sortField.value) {
+    const field = sortField.value
+    const order = sortOrder.value === 'asc' ? 1 : -1
+    result = [...result].sort((a, b) => {
+      if (field === 'name') {
+        return a.name.localeCompare(b.name, 'zh-CN') * order
+      }
+      return (a[field] - b[field]) * order
+    })
+  }
+  return result
 })
+
+const toggleSort = (field) => {
+  if (sortField.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortOrder.value = 'asc'
+  }
+}
 
 const totalPages = computed(() => Math.ceil(filteredDepartments.value.length / pageSize.value) || 1)
 
@@ -399,10 +506,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 
@@ -572,6 +677,85 @@ onMounted(() => {
   background: #f8fafc;
   border-bottom: 1.5px solid var(--border-light);
   white-space: nowrap;
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.sortable-th:hover {
+  color: var(--primary-color);
+}
+
+.sort-icon {
+  display: inline-flex;
+  flex-direction: column;
+  margin-left: 4px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.sort-arrow {
+  font-size: 8px;
+  line-height: 1;
+  color: #d1d5db;
+  transition: color 0.2s ease;
+}
+
+.sort-arrow.active {
+  color: var(--primary-color);
+}
+
+.gen-count-cell {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.gen-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.gen-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+}
+
+.gen-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gen-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.gen-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.gen-stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .dept-table td {

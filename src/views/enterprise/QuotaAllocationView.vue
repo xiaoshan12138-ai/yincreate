@@ -45,7 +45,7 @@
           </div>
         </div>
         <div class="quota-stat-card">
-          <div class="stat-icon-wrap" style="background: #fdf4ff; color: #a855f7;">
+          <div class="stat-icon-wrap" style="background: #eff6ff; color: #2563eb;">
             <i data-lucide="users" style="width: 20px; height: 20px;"></i>
           </div>
           <div class="stat-info">
@@ -1081,10 +1081,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 
@@ -1539,7 +1537,7 @@ onMounted(() => {
 }
 
 .mode-btn.active {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
 }
@@ -1559,7 +1557,7 @@ onMounted(() => {
 }
 
 .allocation-config-panel.mode-hierarchical {
-  border-color: #c4b5fd;
+  border-color: #93c5fd;
   box-shadow: 0 4px 20px rgba(139, 92, 246, 0.08);
 }
 
@@ -1589,7 +1587,7 @@ onMounted(() => {
 }
 
 .hierarchical-config .config-title {
-  color: #7c3aed;
+  color: #2563eb;
 }
 
 .config-form {
@@ -1810,14 +1808,14 @@ onMounted(() => {
 }
 
 .level-tab:hover {
-  border-color: #a78bfa;
+  border-color: #60a5fa;
   transform: translateY(-2px);
 }
 
 .level-tab.active {
-  border-color: #7c3aed;
-  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-  color: #7c3aed;
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #2563eb;
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
 }
 
@@ -1967,7 +1965,7 @@ onMounted(() => {
 }
 
 .alloc-input:focus {
-  border-color: #7c3aed;
+  border-color: #2563eb;
   outline: none;
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
 }
@@ -1983,7 +1981,7 @@ onMounted(() => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%);
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
   border-radius: 11px;
   transition: width 0.4s ease;
   min-width: 2px;
@@ -2006,8 +2004,8 @@ onMounted(() => {
 
 .btn-auto-calc {
   padding: 6px 14px;
-  background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
-  border: 1.5px solid #a78bfa;
+  background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+  border: 1.5px solid #60a5fa;
   border-radius: 6px;
   color: #5b21b6;
   font-size: 12px;
@@ -2089,7 +2087,7 @@ onMounted(() => {
 }
 
 .method-select:focus {
-  border-color: #7c3aed;
+  border-color: #2563eb;
 }
 
 .level-actions {
@@ -2127,7 +2125,7 @@ onMounted(() => {
 }
 
 .btn-level-next {
-  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: white;
   margin-left: auto;
   box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);

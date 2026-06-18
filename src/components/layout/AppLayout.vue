@@ -94,49 +94,47 @@ const showRightSidebar = computed(() => {
   background: rgba(255, 255, 255, 0.6);
 }
 
-.content-area {
-  flex: 7;
-  padding: 12px 16px;
-}
-
-.content-area::-webkit-scrollbar {
+.content-wrapper::-webkit-scrollbar {
   width: 3px;
 }
 
-.content-area::-webkit-scrollbar-track {
+.content-wrapper::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.content-area::-webkit-scrollbar-thumb {
+.content-wrapper::-webkit-scrollbar-thumb {
   background: rgba(156, 163, 175, 0.25);
   border-radius: 8px;
 }
 
-.content-area::-webkit-scrollbar-thumb:hover {
+.content-wrapper::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.35);
+}
+
+.content-area {
+  flex: 7;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 16px;
+  overflow-y: visible;
 }
 
 .content-full-width {
   flex: 1;
+  min-height: 0;
   padding: 0;
+  overflow-y: visible;
 }
 
 .right-sidebar-container {
   flex: 2;
-  min-width: 270px;
+  min-width: 220px;
+  max-width: 300px;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   border-left: 1px solid rgba(243, 244, 246, 1);
   position: relative;
   z-index: 50;
-}
-
-.right-sidebar-container::-webkit-scrollbar {
-  width: 3px;
-}
-
-.right-sidebar-container::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.25);
-  border-radius: 8px;
+  overflow-y: visible;
 }
 </style>

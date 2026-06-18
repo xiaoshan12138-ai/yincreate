@@ -641,10 +641,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 
@@ -910,7 +908,7 @@ onMounted(() => {
 }
 
 .view-btn { background: #eef2ff; color: #6366f1; }
-.view-btn:hover { background: #ddd6fe; }
+.view-btn:hover { background: #bfdbfe; }
 .edit-btn { background: #f1f5f9; color: var(--text-secondary); }
 .edit-btn:hover { background: #e2e8f0; }
 
@@ -1091,7 +1089,7 @@ onMounted(() => {
 }
 
 .type-video { background: #dbeafe; color: #2563eb; }
-.type-image { background: #ede9fe; color: #7c3aed; }
+.type-image { background: #dbeafe; color: #2563eb; }
 .type-text { background: #dcfce7; color: #16a34a; }
 .type-audio { background: #fef3c7; color: #d97706; }
 .type-avatar { background: #fce7f3; color: #db2777; }
@@ -1163,7 +1161,7 @@ onMounted(() => {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
   color: #fff;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }

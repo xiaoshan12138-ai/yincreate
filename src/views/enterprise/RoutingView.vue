@@ -350,10 +350,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 

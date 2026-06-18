@@ -7,9 +7,6 @@
         <!-- 顶部：开启创作 -->
         <div class="sidebar-header">
           <span class="sidebar-title">开启创作</span>
-          <button class="sidebar-collapse-btn" title="收起侧栏">
-            <i data-lucide="panel-left-close" style="width: 16px; height: 16px;"></i>
-          </button>
         </div>
 
         <!-- 新对话按钮 -->
@@ -38,7 +35,7 @@
                 <span class="conv-title">{{ conv.title }}</span>
                 <span class="conv-meta">{{ conv.cards?.length || 0 }} 条结果 · {{ formatConvTime(conv.time) }}</span>
               </div>
-              <button class="conv-delete-btn" @click.stop="deleteConversation(conv.id)" title="删除对话">
+              <button class="conv-delete-btn" @click.stop="deleteConversation(conv.id)" title="归档对话">
                 <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
               </button>
             </div>
@@ -59,8 +56,8 @@
           <div class="input-card">
             <!-- 输入区：上传 + 文字输入 -->
             <div class="input-card-body">
-              <!-- 左侧上传区域（+号触发下拉菜单） -->
-              <div class="upload-dropdown" :class="{ open: isUploadDropdownOpen }">
+              <!-- 左侧上传区域（+号触发下拉菜单，双上传框时隐藏） -->
+              <div v-if="!isDualUploadFeature" class="upload-dropdown" :class="{ open: isUploadDropdownOpen }">
                 <div class="upload-zone" @click.stop="toggleUploadDropdown" title="上传素材">
                   <i data-lucide="plus" style="width: 24px; height: 24px;"></i>
                 </div>
@@ -81,6 +78,12 @@
                     </button>
                   </div>
                   <div class="upload-menu-divider"></div>
+                  <div class="upload-menu-section">
+                    <button class="upload-option" @click="handleUploadFromCloud()">
+                      <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                      从云资料库选择
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -145,6 +148,64 @@
               </div>
             </div>
 
+            <!-- 双上传框（首尾帧/主体+参考图） -->
+            <div v-if="isDualUploadFeature && dualUploadConfig" class="dual-upload-bar">
+              <div class="dual-upload-slot-wrap">
+                <div class="dual-upload-slot" @click.stop="dualUploadDropdown = dualUploadDropdown === 'slot1' ? null : 'slot1'">
+                  <template v-if="dualUploadSlots.slot1">
+                    <img v-if="dualUploadSlots.slot1.type === 'image'" :src="convertBase64ToBlobUrl(dualUploadSlots.slot1.url)" class="dual-upload-preview" />
+                    <video v-else-if="dualUploadSlots.slot1.type === 'video'" :src="dualUploadSlots.slot1.url" class="dual-upload-preview" muted />
+                    <button class="dual-upload-remove" @click.stop="removeDualUpload('slot1')" title="删除">
+                      <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <div class="dual-upload-badge">{{ dualUploadConfig.slot1.label }}</div>
+                  </template>
+                  <template v-else>
+                    <i data-lucide="image-plus" style="width: 20px; height: 20px; color: #9ca3af;"></i>
+                    <span class="dual-upload-placeholder">{{ dualUploadConfig.slot1.label }}</span>
+                  </template>
+                </div>
+                <div v-if="dualUploadDropdown === 'slot1'" class="dual-upload-menu" @click.stop>
+                  <button class="upload-option" @click="handleDualUpload('slot1', dualUploadConfig.slot1.accept)">
+                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                    本地上传
+                  </button>
+                  <div class="upload-menu-divider"></div>
+                  <button class="upload-option" @click="handleDualUploadFromCloud('slot1')">
+                    <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                    从云资料库选择
+                  </button>
+                </div>
+              </div>
+              <div class="dual-upload-slot-wrap">
+                <div class="dual-upload-slot" @click.stop="dualUploadDropdown = dualUploadDropdown === 'slot2' ? null : 'slot2'">
+                  <template v-if="dualUploadSlots.slot2">
+                    <img v-if="dualUploadSlots.slot2.type === 'image'" :src="convertBase64ToBlobUrl(dualUploadSlots.slot2.url)" class="dual-upload-preview" />
+                    <video v-else-if="dualUploadSlots.slot2.type === 'video'" :src="dualUploadSlots.slot2.url" class="dual-upload-preview" muted />
+                    <button class="dual-upload-remove" @click.stop="removeDualUpload('slot2')" title="删除">
+                      <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <div class="dual-upload-badge">{{ dualUploadConfig.slot2.label }}</div>
+                  </template>
+                  <template v-else>
+                    <i data-lucide="image-plus" style="width: 20px; height: 20px; color: #9ca3af;"></i>
+                    <span class="dual-upload-placeholder">{{ dualUploadConfig.slot2.label }}</span>
+                  </template>
+                </div>
+                <div v-if="dualUploadDropdown === 'slot2'" class="dual-upload-menu" @click.stop>
+                  <button class="upload-option" @click="handleDualUpload('slot2', dualUploadConfig.slot2.accept)">
+                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                    本地上传
+                  </button>
+                  <div class="upload-menu-divider"></div>
+                  <button class="upload-option" @click="handleDualUploadFromCloud('slot2')">
+                    <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                    从云资料库选择
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- 媒体素材栏 -->
             <div v-if="uploadedFiles.length > 0 || referencedFiles.length > 0" class="media-bar">
               <div v-if="uploadedFiles.length > 0" class="media-section">
@@ -180,7 +241,7 @@
                       <i data-lucide="music" style="width: 18px; height: 18px;"></i>
                       <span>{{ file.name }}</span>
                     </div>
-                    <button class="remove-file-btn" @click="removeUploadedFile(index)" title="删除">
+                    <button class="remove-file-btn" @click.stop="removeUploadedFile(index)" title="删除">
                       <i data-lucide="x" style="width: 12px; height: 12px;"></i>
                     </button>
                     <div class="file-type-badge">{{ getFileTypeLabel(file.type) }}</div>
@@ -417,19 +478,29 @@
                   </Teleport>
                 </div>
 
-                <!-- 声音开关（仅特定视频模型） -->
+                <!-- 声音开关（视频生成时显示） -->
                 <button
                   v-if="showSoundToggle"
-                  :class="['option-chip sound-chip', { active: videoSoundEnabled }]"
-                  @click="videoSoundEnabled = !videoSoundEnabled"
-                  :title="videoSoundEnabled ? '点击关闭声音' : '点击开启声音'"
+                  :class="['option-chip sound-chip', { active: videoSoundEnabled, disabled: soundToggleDisabled }]"
+                  :disabled="soundToggleDisabled"
+                  @click="handleSoundToggle"
+                  :title="soundToggleDisabled ? (videoSoundEnabled ? '当前模型仅支持有声' : '当前模型仅支持无声') : (videoSoundEnabled ? '点击关闭声音' : '点击开启声音')"
                 >
-                  <i :data-lucide="videoSoundEnabled ? 'volume-2' : 'volume-x'" style="width: 14px; height: 14px;"></i>
+                  <!-- 有声图标 -->
+                  <svg v-if="videoSoundEnabled" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                  <!-- 无声图标 -->
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  <span class="sound-label">{{ videoSoundEnabled ? '有声' : '无声' }}</span>
                 </button>
               </div>
 
-              <!-- 右侧：字数 + 发送 -->
+              <!-- 右侧：积分消耗 + 字数 + 发送 -->
               <div class="footer-right">
+                <span v-if="estimatedPrice" class="price-estimate-mini" :class="{ loading: estimatingPrice }">
+                  <i data-lucide="coins" style="width: 12px; height: 12px;"></i>
+                  约 ¥{{ estimatedPrice.estimated_cost?.toFixed(2) }}
+                </span>
+                <span v-else-if="estimatingPrice" class="price-estimate-mini loading">计算中...</span>
                 <span class="char-count-mini">{{ prompt.length }} / 2000</span>
                 <button
                   class="send-btn"
@@ -445,42 +516,44 @@
 
         <!-- ====== 已交互状态：结果展示 + 输入框 ====== -->
         <div v-else class="jimeng-interaction">
-          <!-- 顶部信息栏 -->
-          <div class="interaction-topbar">
-            <div class="topbar-context" @click="togglePromptExpand" :class="{ 'is-expanded': isPromptExpanded }">
-              <!-- 上传文件缩略图 -->
-              <div v-if="currentCardInputFiles.length > 0" class="context-thumbs">
-                <div v-for="(file, fi) in currentCardInputFiles.slice(0, 3)" :key="fi" class="context-thumb-item">
-                  <img v-if="file.type === 'image'" :src="convertBase64ToBlobUrl(file.url)" class="context-thumb-img" />
-                  <div v-else-if="file.type === 'video'" class="context-thumb-video">
-                    <i data-lucide="video" style="width: 12px; height: 12px;"></i>
-                  </div>
-                  <div v-else class="context-thumb-file">
-                    <i data-lucide="file" style="width: 12px; height: 12px;"></i>
-                  </div>
-                </div>
-                <span v-if="currentCardInputFiles.length > 3" class="context-thumb-more">+{{ currentCardInputFiles.length - 3 }}</span>
-              </div>
-              <!-- 用户输入文本 -->
-              <span class="context-prompt" :class="{ 'is-truncated': !isPromptExpanded }">{{ currentCardPrompt || '新对话' }}</span>
-              <button v-if="currentCardPrompt && currentCardPrompt.length > 50" class="context-expand-btn" @click.stop="togglePromptExpand">
-                <i :data-lucide="isPromptExpanded ? 'chevron-up' : 'chevron-down'" style="width: 14px; height: 14px;"></i>
-              </button>
-              <span class="context-sep">|</span>
-              <span class="context-model">{{ selectedModelName }}</span>
-              <span class="context-sep">|</span>
-              <span class="context-feature">{{ selectedFeatureLabel }}</span>
-              <span class="context-sep">|</span>
-              <span class="context-quality">{{ selectedQualityLabel }}</span>
-            </div>
-            <div class="topbar-actions">
-            </div>
-          </div>
-
           <!-- 结果展示区域 -->
           <div class="results-area" ref="canvasContainer">
             <!-- 已生成的结果卡片（历史对话） -->
-            <div v-for="card in generatedCards" :key="card.id" class="result-card-group">
+            <div v-for="card in generatedCards" :key="card.id" class="result-card-group" :id="'card-' + card.id">
+              <!-- 每张卡片内的信息栏 -->
+              <div class="card-topbar">
+                <!-- 缩略图区域 -->
+                <div v-if="card.uploadedInputFiles && card.uploadedInputFiles.length > 0" class="card-thumb-strip">
+                  <div v-for="(file, fi) in card.uploadedInputFiles" :key="fi" class="card-thumb-item">
+                    <img v-if="file.type === 'image'" :src="convertBase64ToBlobUrl(file.url)" class="card-thumb-img" />
+                    <div v-else-if="file.type === 'video'" class="card-thumb-video">
+                      <i data-lucide="video" style="width: 14px; height: 14px;"></i>
+                    </div>
+                    <div v-else class="card-thumb-file">
+                      <i data-lucide="music" style="width: 14px; height: 14px;"></i>
+                    </div>
+                  </div>
+                </div>
+                <div class="topbar-context" @click="togglePromptExpand(card.id)" :class="{ 'is-expanded': expandedCardIds[card.id] }">
+                  <span class="context-prompt" :class="{ 'is-truncated': !expandedCardIds[card.id] }">{{ card.prompt || '新对话' }}</span>
+                  <button v-if="card.prompt && card.prompt.length > 50" class="context-expand-btn" @click.stop="togglePromptExpand(card.id)">
+                    <i :data-lucide="expandedCardIds[card.id] ? 'chevron-up' : 'chevron-down'" style="width: 14px; height: 14px;"></i>
+                  </button>
+                  <span class="context-sep">|</span>
+                  <span class="context-model">{{ getModelNameById(card.model) }}</span>
+                  <span class="context-sep">|</span>
+                  <span class="context-feature">{{ getFeatureLabelByCard(card) }}</span>
+                  <span class="context-sep">|</span>
+                  <span class="context-ratio">{{ card.ratio || '16:9' }}</span>
+                  <template v-if="card.type === 'video' && card.duration">
+                    <span class="context-sep">|</span>
+                    <span class="context-duration">{{ card.duration }}s</span>
+                  </template>
+                  <span class="context-sep">|</span>
+                  <span class="context-quality">{{ getQualityLabelByCard(card) }}</span>
+                </div>
+              </div>
+
               <!-- 图片/视频结果网格 -->
               <div v-if="card.results && card.results.length > 0" class="result-grid">
                 <div v-for="(result, idx) in card.results" :key="idx" class="result-grid-item">
@@ -513,6 +586,11 @@
                   </div>
                 </div>
               </div>
+              <div v-else-if="card.status === 'failed'" class="card-placeholder-inline card-failed">
+                <i data-lucide="alert-circle" style="width: 24px; height: 24px;"></i>
+                <span>生成失败</span>
+                <button class="retry-btn" @click="regenerateFromCard(card)">重试</button>
+              </div>
               <div v-else class="card-placeholder-inline">
                 <i data-lucide="loader" style="width: 24px; height: 24px;"></i>
                 <span>生成中...</span>
@@ -528,6 +606,14 @@
                   <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
                   再次生成
                 </button>
+                <div class="result-feedback-group">
+                  <button class="result-feedback-btn" :class="{ active: card.feedback === 'like' }" @click="toggleFeedback(card, 'like')" title="赞">
+                    <i data-lucide="thumbs-up" style="width: 14px; height: 14px;"></i>
+                  </button>
+                  <button class="result-feedback-btn" :class="{ active: card.feedback === 'dislike' }" @click="toggleFeedback(card, 'dislike')" title="踩">
+                    <i data-lucide="thumbs-down" style="width: 14px; height: 14px;"></i>
+                  </button>
+                </div>
                 <button class="result-action-chip more-btn">
                   <i data-lucide="more-horizontal" style="width: 14px; height: 14px;"></i>
                 </button>
@@ -539,18 +625,12 @@
               <i data-lucide="image" style="width: 48px; height: 48px; color: #d1d5db;"></i>
               <p>暂无生成结果</p>
             </div>
-
-            <!-- 生成中的加载状态（在历史对话下方） -->
-            <div v-if="isGenerating && generatedCards.filter(c => c.results?.length > 0).length === 0" class="generating-indicator-full">
-              <div class="spinner-large"></div>
-              <p>AI 正在创作中，请稍候...</p>
-            </div>
           </div>
 
           <!-- 底部输入卡片（与欢迎态复用相同结构） -->
           <div class="input-card input-card-bottom">
             <div class="input-card-body">
-              <div class="upload-dropdown" :class="{ open: isUploadDropdownOpen }">
+              <div v-if="!isDualUploadFeature" class="upload-dropdown" :class="{ open: isUploadDropdownOpen }">
                 <div class="upload-zone" @click.stop="toggleUploadDropdown" title="上传素材">
                   <i data-lucide="plus" style="width: 24px; height: 24px;"></i>
                 </div>
@@ -571,6 +651,12 @@
                     </button>
                   </div>
                   <div class="upload-menu-divider"></div>
+                  <div class="upload-menu-section">
+                    <button class="upload-option" @click="handleUploadFromCloud()">
+                      <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                      从云资料库选择
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="prompt-editor-wrapper" ref="editorWrapperRefBottom">
@@ -632,6 +718,64 @@
               </div>
             </div>
 
+            <!-- 双上传框（首尾帧/主体+参考图） -->
+            <div v-if="isDualUploadFeature && dualUploadConfig" class="dual-upload-bar">
+              <div class="dual-upload-slot-wrap">
+                <div class="dual-upload-slot" @click.stop="dualUploadDropdown = dualUploadDropdown === 'slot1' ? null : 'slot1'">
+                  <template v-if="dualUploadSlots.slot1">
+                    <img v-if="dualUploadSlots.slot1.type === 'image'" :src="convertBase64ToBlobUrl(dualUploadSlots.slot1.url)" class="dual-upload-preview" />
+                    <video v-else-if="dualUploadSlots.slot1.type === 'video'" :src="dualUploadSlots.slot1.url" class="dual-upload-preview" muted />
+                    <button class="dual-upload-remove" @click.stop="removeDualUpload('slot1')" title="删除">
+                      <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <div class="dual-upload-badge">{{ dualUploadConfig.slot1.label }}</div>
+                  </template>
+                  <template v-else>
+                    <i data-lucide="image-plus" style="width: 20px; height: 20px; color: #9ca3af;"></i>
+                    <span class="dual-upload-placeholder">{{ dualUploadConfig.slot1.label }}</span>
+                  </template>
+                </div>
+                <div v-if="dualUploadDropdown === 'slot1'" class="dual-upload-menu" @click.stop>
+                  <button class="upload-option" @click="handleDualUpload('slot1', dualUploadConfig.slot1.accept)">
+                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                    本地上传
+                  </button>
+                  <div class="upload-menu-divider"></div>
+                  <button class="upload-option" @click="handleDualUploadFromCloud('slot1')">
+                    <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                    从云资料库选择
+                  </button>
+                </div>
+              </div>
+              <div class="dual-upload-slot-wrap">
+                <div class="dual-upload-slot" @click.stop="dualUploadDropdown = dualUploadDropdown === 'slot2' ? null : 'slot2'">
+                  <template v-if="dualUploadSlots.slot2">
+                    <img v-if="dualUploadSlots.slot2.type === 'image'" :src="convertBase64ToBlobUrl(dualUploadSlots.slot2.url)" class="dual-upload-preview" />
+                    <video v-else-if="dualUploadSlots.slot2.type === 'video'" :src="dualUploadSlots.slot2.url" class="dual-upload-preview" muted />
+                    <button class="dual-upload-remove" @click.stop="removeDualUpload('slot2')" title="删除">
+                      <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <div class="dual-upload-badge">{{ dualUploadConfig.slot2.label }}</div>
+                  </template>
+                  <template v-else>
+                    <i data-lucide="image-plus" style="width: 20px; height: 20px; color: #9ca3af;"></i>
+                    <span class="dual-upload-placeholder">{{ dualUploadConfig.slot2.label }}</span>
+                  </template>
+                </div>
+                <div v-if="dualUploadDropdown === 'slot2'" class="dual-upload-menu" @click.stop>
+                  <button class="upload-option" @click="handleDualUpload('slot2', dualUploadConfig.slot2.accept)">
+                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                    本地上传
+                  </button>
+                  <div class="upload-menu-divider"></div>
+                  <button class="upload-option" @click="handleDualUploadFromCloud('slot2')">
+                    <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                    从云资料库选择
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- 媒体素材栏 -->
             <div v-if="uploadedFiles.length > 0 || referencedFiles.length > 0" class="media-bar">
               <div v-if="uploadedFiles.length > 0" class="media-section">
@@ -657,7 +801,7 @@
                       <i data-lucide="music" style="width: 18px; height: 18px;"></i>
                       <span>{{ file.name }}</span>
                     </div>
-                    <button class="remove-file-btn" @click="removeUploadedFile(index)" title="删除">
+                    <button class="remove-file-btn" @click.stop="removeUploadedFile(index)" title="删除">
                       <i data-lucide="x" style="width: 12px; height: 12px;"></i>
                     </button>
                     <div class="file-type-badge">{{ getFileTypeLabel(file.type) }}</div>
@@ -839,13 +983,24 @@
                 </div>
                 <button
                   v-if="showSoundToggle"
-                  :class="['option-chip sound-chip', { active: videoSoundEnabled }]"
-                  @click="videoSoundEnabled = !videoSoundEnabled"
+                  :class="['option-chip sound-chip', { active: videoSoundEnabled, disabled: soundToggleDisabled }]"
+                  :disabled="soundToggleDisabled"
+                  @click="handleSoundToggle"
+                  :title="soundToggleDisabled ? (videoSoundEnabled ? '当前模型仅支持有声' : '当前模型仅支持无声') : (videoSoundEnabled ? '点击关闭声音' : '点击开启声音')"
                 >
-                  <i :data-lucide="videoSoundEnabled ? 'volume-2' : 'volume-x'" style="width: 14px; height: 14px;"></i>
+                  <!-- 有声图标 -->
+                  <svg v-if="videoSoundEnabled" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                  <!-- 无声图标 -->
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  <span class="sound-label">{{ videoSoundEnabled ? '有声' : '无声' }}</span>
                 </button>
               </div>
               <div class="footer-right">
+                <span v-if="estimatedPrice" class="price-estimate-mini" :class="{ loading: estimatingPrice }">
+                  <i data-lucide="coins" style="width: 12px; height: 12px;"></i>
+                  约 ¥{{ estimatedPrice.estimated_cost?.toFixed(2) }}
+                </span>
+                <span v-else-if="estimatingPrice" class="price-estimate-mini loading">计算中...</span>
                 <span class="char-count-mini">{{ prompt.length }} / 2000</span>
                 <button class="send-btn" :disabled="!canGenerate || isGenerating" @click="handleGenerate">
                   <i data-lucide="arrow-up" style="width: 18px; height: 18px;"></i>
@@ -857,14 +1012,64 @@
       </main>
     </div>
 
+    <!-- 云资料库选择弹窗 -->
+    <Teleport to="body">
+      <div v-if="showCloudModal" class="cloud-modal-overlay" @click.self="closeCloudModal">
+        <div class="cloud-modal-content">
+          <div class="cloud-modal-header">
+            <h3 class="cloud-modal-title">从云资料库选择素材</h3>
+            <button class="cloud-modal-close" @click="closeCloudModal">×</button>
+          </div>
+          <div class="cloud-modal-body">
+            <div v-if="filteredCloudAssets.length === 0" class="cloud-empty">
+              <i data-lucide="cloud-off" style="width: 32px; height: 32px; color: #9ca3af;"></i>
+              <p>暂无素材</p>
+            </div>
+            <div v-else class="cloud-assets-grid">
+              <div v-for="asset in filteredCloudAssets" :key="asset.id" class="cloud-asset-card" @click="selectCloudAsset(asset)">
+                <div class="cloud-asset-thumb">
+                  <img v-if="asset.type === 'image' && asset.url" :src="asset.url" :alt="asset.name" />
+                  <div v-else-if="asset.type === 'video'" class="cloud-asset-placeholder">
+                    <i data-lucide="video" style="width: 28px; height: 28px;"></i>
+                  </div>
+                  <div v-else-if="asset.type === 'audio'" class="cloud-asset-placeholder">
+                    <i data-lucide="music" style="width: 28px; height: 28px;"></i>
+                  </div>
+                </div>
+                <div class="cloud-asset-info">
+                  <span class="cloud-asset-name">{{ asset.name }}</span>
+                  <span class="cloud-asset-size">{{ asset.size }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </AppLayout>
+
+  <!-- 调试开关 -->
+  <div class="debug-toggle" @click="debugMode = !debugMode" :class="{ active: debugMode }" :title="debugMode ? '调试模式已开启（请求仅打印到控制台）' : '点击开启调试模式'">
+    <i data-lucide="bug" style="width: 14px; height: 14px;"></i>
+    <span>{{ debugMode ? '调试中' : '调试' }}</span>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/layout/AppLayout.vue'
 import { userData } from '../data/userData'
+import { getPointsApi, estimatePriceApi } from '../api/profile'
+import {
+  createConversationApi,
+  listConversationsApi,
+  getConversationApi,
+  updateConversationApi,
+  listMessagesApi,
+  postMessageApi
+} from '../api/conversation'
 
 const route = useRoute()
 const router = useRouter()
@@ -874,28 +1079,34 @@ const hasInteracted = ref(false)
 const activeConversationId = ref(null)
 const conversationHistory = ref([])
 
+// ========== 积分相关状态 ==========
+const userPoints = ref(null) // { total_points, used_points, expired_points }
+const remainingPoints = computed(() => {
+  if (!userPoints.value) return '--'
+  return userPoints.value.total_points - userPoints.value.used_points
+})
+const estimatedPrice = ref(null) // { estimated_cost, currency, breakdown, note }
+const estimatingPrice = ref(false)
+
+async function fetchUserPoints() {
+  try {
+    const res = await getPointsApi()
+    userPoints.value = res.data
+  } catch (e) {
+    console.warn('获取积分信息失败:', e)
+  }
+}
+
 const currentConversationTitle = computed(() => {
   const conv = conversationHistory.value.find(c => c.id === activeConversationId.value)
   return conv ? conv.title : '新对话'
 })
 
-// 当前对话最新卡片的用户输入和上传文件
-const currentCardPrompt = computed(() => {
-  const conv = conversationHistory.value.find(c => c.id === activeConversationId.value)
-  if (!conv || conv.cards.length === 0) return ''
-  return conv.cards[conv.cards.length - 1].prompt || conv.title
-})
-
-const currentCardInputFiles = computed(() => {
-  const conv = conversationHistory.value.find(c => c.id === activeConversationId.value)
-  if (!conv || conv.cards.length === 0) return []
-  return conv.cards[conv.cards.length - 1].uploadedInputFiles || []
-})
-
-const isPromptExpanded = ref(false)
-function togglePromptExpand() {
-  if (currentCardPrompt.value && currentCardPrompt.value.length > 50) {
-    isPromptExpanded.value = !isPromptExpanded.value
+const expandedCardIds = reactive({})
+function togglePromptExpand(cardId) {
+  const card = generatedCards.value.find(c => c.id === cardId)
+  if (card && card.prompt && card.prompt.length > 50) {
+    expandedCardIds[cardId] = !expandedCardIds[cardId]
   }
 }
 
@@ -958,36 +1169,12 @@ async function deleteConversation(id) {
       selectConversation(conversationHistory.value[0].id)
     }
   }
-  saveConversationsToLocal()
-  // 同步删除后端
-  await deleteConversationAPI(id)
-}
-
-function saveConversationsToLocal() {
+  // 后端无 DELETE 端点，使用归档代替
   try {
-    const data = conversationHistory.value.map(c => ({
-      id: c.id, title: c.title, type: c.type, time: c.time,
-      cards: c.cards.map(card => ({
-        id: card.id, title: card.title, prompt: card.prompt,
-        type: card.type, model: card.model, taskId: card.taskId,
-        results: card.results, status: card.status
-      }))
-    }))
-    localStorage.setItem('szg_conversations', JSON.stringify(data))
-  } catch (e) { console.warn('保存对话失败:', e) }
-}
-
-function loadConversationsFromLocal() {
-  try {
-    const raw = localStorage.getItem('szg_conversations')
-    if (!raw) return
-    const data = JSON.parse(raw)
-    conversationHistory.value = data.map(c => ({
-      ...c,
-      thumbnail: c.cards?.[0]?.results?.[0]?.url || '',
-      cards: (c.cards || []).map(card => ({ ...card, loadingVideo: false, uploadedInputFiles: [] }))
-    }))
-  } catch (e) { console.warn('加载对话失败:', e) }
+    await updateConversationApi(id, { status: 'archived' })
+  } catch (e) {
+    console.warn('归档对话失败:', e)
+  }
 }
 
 function formatConvTime(ts) {
@@ -1019,6 +1206,22 @@ function regenerateFromCard(card) {
   handleGenerate()
 }
 
+async function toggleFeedback(card, type) {
+  const newFeedback = card.feedback === type ? null : type
+  card.feedback = newFeedback
+  // 发送反馈到后端
+  try {
+    await apiFetch(`/cards/${card.id}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback: newFeedback })
+    })
+  } catch (e) {
+    console.warn('反馈提交失败:', e)
+  }
+  nextTick(() => { if (window.lucide) lucide.createIcons() })
+}
+
 // ========== 原有状态和逻辑 ==========
 const prompt = ref('')
 const selectedType = ref('image')
@@ -1027,6 +1230,7 @@ const selectedRatio = ref('16:9')
 const selectedQuality = ref('2k')
 const selectedFeature = ref('')
 const isGenerating = ref(false)
+const debugMode = ref(false)
 const uploadedFiles = ref([])
 const referencedFiles = ref([])
 const atTags = ref([])
@@ -1035,6 +1239,28 @@ let atImageCounter = 0
 let atVideoCounter = 0
 const showAtMentionDropdown = ref(false)
 const atMentionCandidates = ref([])
+
+// 双上传框配置：需要双上传的特色功能
+const dualUploadFeatureConfig = {
+  'first-last-frame': { slot1: { key: 'first_frame', label: '首帧', accept: 'image/*' }, slot2: { key: 'last_frame', label: '尾帧', accept: 'image/*' } },
+  'ai-outfit': { slot1: { key: 'subject', label: '主体', accept: 'image/*' }, slot2: { key: 'reference', label: '参考图', accept: 'image/*' } },
+  'scene-replace': { slot1: { key: 'subject', label: '主体', accept: 'image/*' }, slot2: { key: 'reference', label: '参考图', accept: 'image/*' } },
+  'style-replace': { slot1: { key: 'subject', label: '主体', accept: 'image/*' }, slot2: { key: 'reference', label: '参考图', accept: 'image/*' } },
+  'effect-copy': { slot1: { key: 'subject', label: '主体', accept: 'image/*,video/*' }, slot2: { key: 'reference', label: '参考图', accept: 'image/*' } },
+  'motion-imitate': { slot1: { key: 'subject', label: '主体', accept: 'image/*' }, slot2: { key: 'reference', label: '参考视频', accept: 'video/*' } }
+}
+
+const dualUploadSlots = ref({ slot1: null, slot2: null })
+const dualUploadDropdown = ref(null) // 'slot1' | 'slot2' | null
+const currentDualUploadSlot = ref(null) // 记录从云资料库选择时对应的双上传slot
+
+const isDualUploadFeature = computed(() => {
+  return selectedType.value === 'video' && selectedFeature.value && dualUploadFeatureConfig[selectedFeature.value]
+})
+
+const dualUploadConfig = computed(() => {
+  return isDualUploadFeature.value ? dualUploadFeatureConfig[selectedFeature.value] : null
+})
 const activeMentionIndex = ref(0)
 const mentionDropdownStyle = ref({})
 const videoSoundEnabled = ref(false)
@@ -1070,13 +1296,27 @@ const promptPlaceholder = computed(() => {
 
 const canGenerate = computed(() => prompt.value.trim().length > 0)
 
-const showSoundToggle = computed(() => {
-  if (selectedType.value !== 'video') return false
+const showSoundToggle = computed(() => selectedType.value === 'video')
+
+const soundToggleMode = computed(() => {
+  if (selectedType.value !== 'video') return 'hidden'
   const model = models.value.find(m => m.id === selectedModel.value)
-  if (!model) return false
-  const modelName = (model.name || model.id || '').toLowerCase()
-  return (modelName.includes('kling') && modelName.includes('3.0')) || modelName.includes('kling_3')
+  if (!model) return 'disabled-silent'
+  const name = (model.name || model.id || '').toLowerCase()
+  const id = (model.id || '').toLowerCase()
+  // 可自由切换的模型：GV3.1, Kling2.6, Kling3.0, Kling3.0-Omni
+  const isFreeChoice =
+    (name.includes('gv') && name.includes('3.1')) ||
+    (name.includes('kling') && (name.includes('2.6') || name.includes('3.0'))) ||
+    id.includes('kling') && (id.includes('2.6') || id.includes('3.0') || id.includes('2_6') || id.includes('3_0'))
+  if (isFreeChoice) return 'free'
+  // HappyHorse 系列：默认有声且不可选
+  if (name.includes('happyhorse') || id.includes('happyhorse')) return 'forced-sound'
+  // 其他模型：默认无声且不可选
+  return 'disabled-silent'
 })
+
+const soundToggleDisabled = computed(() => soundToggleMode.value !== 'free')
 
 // ========== 下拉框状态 ==========
 const isTypeDropdownOpen = ref(false)
@@ -1140,6 +1380,27 @@ const selectedQualityLabel = computed(() => {
   const quality = qualities.find(q => q.id === selectedQuality.value)
   return quality ? quality.label : '2K'
 })
+
+function getModelNameById(modelId) {
+  if (!modelId) return '默认模型'
+  const model = models.value.find(m => m.id === modelId)
+  return model ? model.name : '默认模型'
+}
+
+function getQualityLabelByCard(card) {
+  if (card.quality) {
+    const quality = qualities.find(q => q.id === card.quality)
+    return quality ? quality.label : '2K'
+  }
+  return '2K'
+}
+
+function getFeatureLabelByCard(card) {
+  if (!card.feature) return card.type === 'video' ? '全能参考' : '文生图'
+  const features = featureMap[card.type] || []
+  const feature = features.find(f => f.id === card.feature)
+  return feature ? feature.label : (card.type === 'video' ? '全能参考' : '文生图')
+}
 
 const featureMap = {
   image: [
@@ -1285,6 +1546,8 @@ function selectQuality(quality) {
 function selectFeature(feature) {
   selectedFeature.value = feature.id
   isFeatureDropdownOpen.value = false
+  isUploadDropdownOpen.value = false
+  clearDualUploadSlots()
   nextTick(() => { if (window.lucide) lucide.createIcons() })
 }
 function selectDuration(dur) {
@@ -1304,6 +1567,10 @@ function getDefaultImageModels() {
 
 function getDefaultVideoModels() {
   return [
+    { id: 'kling_3_0', name: 'Kling 3.0', description: '高质量视频生成', vendor: 'vendor_a', vendor_name: '腾讯云 VOD' },
+    { id: 'kling_3_0_omni', name: 'Kling 3.0 Omni', description: '全能视频生成', is_new: true, vendor: 'vendor_a', vendor_name: '腾讯云 VOD' },
+    { id: 'kling_2_6', name: 'Kling 2.6', description: '高性价比视频生成', vendor: 'vendor_a', vendor_name: '腾讯云 VOD' },
+    { id: 'gv_3_1', name: 'GV3.1', description: '通用视频生成', is_new: true, vendor: 'vendor_a', vendor_name: '腾讯云 VOD' },
     { id: 'seedance_2.0_fast_vip', name: 'Seedance 2.0 Fast VIP+', description: '极速推理', is_new: true, is_vip: true, vendor: 'vendor_a', vendor_name: '腾讯云 VOD' },
     { id: 'seedance_2.0_fast', name: 'Seedance 2.0 Fast', description: '高性价比', is_new: true, vendor: 'vendor_a', vendor_name: '腾讯云 VOD' },
     { id: 'happyhorse-1.0-video-edit-720p', name: 'HappyHorse Video Edit 720p', description: '视频编辑', vendor: 'vendor_b', vendor_name: 'Token Switch' }
@@ -1385,8 +1652,19 @@ watch(selectedType, (newType) => {
   selectedModel.value = ''
   selectedFeature.value = ''
   uploadedFiles.value = []
+  clearDualUploadSlots()
   updateModelsByType()
   console.log('✅ 模型列表已更新, 当前模型数量:', models.value.length, `(${newType})`)
+})
+
+// 切换模型时根据声音模式自动调整状态
+watch(soundToggleMode, (mode) => {
+  if (mode === 'forced-sound') {
+    videoSoundEnabled.value = true
+  } else if (mode === 'disabled-silent') {
+    videoSoundEnabled.value = false
+  }
+  // mode === 'free' 时不干预，保留用户选择
 })
 
 // ========== 文件上传 ==========
@@ -1425,6 +1703,65 @@ function handleUploadType(fileType) {
   input.click()
 }
 
+// 云资料库模拟数据
+const cloudAssets = ref([
+  { id: 'cloud_1', type: 'image', name: '产品主图.png', url: 'https://picsum.photos/seed/cloud1/400/300', size: '2.1MB' },
+  { id: 'cloud_2', type: 'image', name: '品牌Logo.png', url: 'https://picsum.photos/seed/cloud2/400/300', size: '580KB' },
+  { id: 'cloud_3', type: 'video', name: '宣传片段.mp4', url: '', size: '15.3MB' },
+  { id: 'cloud_4', type: 'image', name: '背景素材.jpg', url: 'https://picsum.photos/seed/cloud4/400/300', size: '1.8MB' },
+  { id: 'cloud_5', type: 'audio', name: '背景音乐.mp3', url: '', size: '4.2MB' },
+  { id: 'cloud_6', type: 'video', name: '产品演示.mp4', url: '', size: '22.1MB' },
+])
+const showCloudModal = ref(false)
+const cloudModalFileType = ref('image')
+
+function handleUploadFromCloud() {
+  isUploadDropdownOpen.value = false
+  cloudModalFileType.value = null
+  showCloudModal.value = true
+  nextTick(() => { if (window.lucide) lucide.createIcons() })
+}
+
+function closeCloudModal() {
+  showCloudModal.value = false
+}
+
+function selectCloudAsset(asset) {
+  // 如果是从双上传框的云资料库选择，直接填入对应slot
+  if (currentDualUploadSlot.value) {
+    const slotKey = currentDualUploadSlot.value
+    const config = dualUploadConfig.value
+    const slotConfig = config ? config[slotKey] : null
+    dualUploadSlots.value[slotKey] = {
+      type: asset.type,
+      url: asset.url || `https://picsum.photos/seed/${asset.id}/400/300`,
+      purpose: slotConfig ? slotConfig.key : slotKey,
+      object_id: slotConfig ? `${slotConfig.key}_1` : `${slotKey}_1`,
+      name: asset.name,
+      fromCloud: true
+    }
+    currentDualUploadSlot.value = null
+    showCloudModal.value = false
+    nextTick(() => { if (window.lucide) lucide.createIcons() })
+    return
+  }
+  uploadedFiles.value.push({
+    type: asset.type,
+    url: asset.url || `https://picsum.photos/seed/${asset.id}/400/300`,
+    purpose: 'reference',
+    object_id: `cloud_${asset.id}`,
+    name: asset.name,
+    fromCloud: true
+  })
+  showCloudModal.value = false
+  nextTick(() => { if (window.lucide) lucide.createIcons() })
+}
+
+const filteredCloudAssets = computed(() => {
+  if (!cloudModalFileType.value) return cloudAssets.value
+  return cloudAssets.value.filter(a => a.type === cloudModalFileType.value)
+})
+
 function removeUploadedFile(index) {
   const removed = uploadedFiles.value.splice(index, 1)[0]
   if (removed && removed.object_id) {
@@ -1432,6 +1769,57 @@ function removeUploadedFile(index) {
   }
   resequenceAtTags()
   nextTick(() => { if (window.lucide) lucide.createIcons() })
+}
+
+// ========== 双上传框功能 ==========
+function handleDualUpload(slotKey, accept) {
+  dualUploadDropdown.value = null
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = accept || 'image/*'
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      let detectedType = 'image'
+      if (file.type.startsWith('video/')) detectedType = 'video'
+      else if (file.type.startsWith('audio/')) detectedType = 'audio'
+      const config = dualUploadConfig.value
+      const slotConfig = config ? config[slotKey] : null
+      dualUploadSlots.value[slotKey] = {
+        type: detectedType,
+        url: event.target.result,
+        purpose: slotConfig ? slotConfig.key : slotKey,
+        object_id: slotConfig ? `${slotConfig.key}_1` : `${slotKey}_1`,
+        name: file.name
+      }
+      nextTick(() => { if (window.lucide) lucide.createIcons() })
+    }
+    reader.readAsDataURL(file)
+  }
+  input.click()
+}
+
+function handleDualUploadFromCloud(slotKey) {
+  dualUploadDropdown.value = null
+  currentDualUploadSlot.value = slotKey
+  handleUploadFromCloud()
+}
+
+function removeDualUpload(slotKey) {
+  dualUploadSlots.value[slotKey] = null
+  nextTick(() => { if (window.lucide) lucide.createIcons() })
+}
+
+function clearDualUploadSlots() {
+  dualUploadSlots.value = { slot1: null, slot2: null }
+}
+
+// 声音按钮点击：使用内联SVG，无需调用 lucide.createIcons
+function handleSoundToggle() {
+  if (soundToggleDisabled.value) return
+  videoSoundEnabled.value = !videoSoundEnabled.value
 }
 
 /** 删除后重新编排@标签编号，保持连续 */
@@ -1858,6 +2246,57 @@ function getCurrentParams() {
   return { sceneType, ratio, resolution }
 }
 
+// ========== 价格估算函数（必须在变量声明之后） ==========
+async function fetchEstimatedPrice() {
+  if (!selectedModel.value) { estimatedPrice.value = null; return }
+  const currentModel = models.value.find(m => m.id === selectedModel.value)
+  if (!currentModel) { estimatedPrice.value = null; return }
+
+  const params = getCurrentParams()
+  let outputType = selectedType.value === 'digital-human' ? 'digital_human' : selectedType.value
+
+  const requestParams = {
+    model: currentModel.name || currentModel.id,
+    output_type: outputType,
+    parameters: {
+      resolution: params.resolution || '1080P'
+    }
+  }
+
+  if (outputType === 'video') {
+    requestParams.parameters.duration = videoDuration.value
+    requestParams.parameters.with_audio = videoSoundEnabled.value
+  }
+  if (outputType === 'image') {
+    requestParams.parameters.count = 1
+  }
+
+  estimatingPrice.value = true
+  try {
+    const res = await estimatePriceApi(requestParams)
+    if (res.data) {
+      estimatedPrice.value = res.data
+    }
+  } catch (e) {
+    console.warn('价格估算失败:', e)
+    estimatedPrice.value = null
+  } finally {
+    estimatingPrice.value = false
+  }
+}
+
+// 防抖的价格估算
+let priceDebounceTimer = null
+function debouncedFetchPrice() {
+  clearTimeout(priceDebounceTimer)
+  priceDebounceTimer = setTimeout(() => { fetchEstimatedPrice() }, 500)
+}
+
+// 监听参数变化自动估算价格
+watch([selectedModel, selectedType, selectedQuality, videoDuration, videoSoundEnabled], () => {
+  debouncedFetchPrice()
+})
+
 function buildGenerateRequest() {
   const currentModel = models.value.find(m => m.id === selectedModel.value)
   if (!currentModel) throw new Error('请先选择模型')
@@ -1876,6 +2315,25 @@ function buildGenerateRequest() {
     allInputFiles = referencedFiles.value.map(ref => ({
       type: ref.type, url: ref.url, purpose: 'reference', object_id: ref.object_id || String(ref.sourceId || '')
     }))
+  } else if (isDualUploadFeature.value) {
+    // 双上传框模式：使用 slot1 和 slot2 的文件
+    allInputFiles = []
+    if (dualUploadSlots.value.slot1) {
+      allInputFiles.push({
+        type: dualUploadSlots.value.slot1.type,
+        url: dualUploadSlots.value.slot1.url,
+        purpose: dualUploadSlots.value.slot1.purpose,
+        object_id: dualUploadSlots.value.slot1.object_id
+      })
+    }
+    if (dualUploadSlots.value.slot2) {
+      allInputFiles.push({
+        type: dualUploadSlots.value.slot2.type,
+        url: dualUploadSlots.value.slot2.url,
+        purpose: dualUploadSlots.value.slot2.purpose,
+        object_id: dualUploadSlots.value.slot2.object_id
+      })
+    }
   } else {
     allInputFiles = [...uploadedFiles.value]
   }
@@ -2040,10 +2498,10 @@ async function handleGenerate() {
   if (!canGenerate.value || isGenerating.value) return
   if (!selectedModel.value) { showToast('请先选择模型', 'warning'); return }
 
-  const currentModel = models.value.find(m => m.id === selectedModel.value)
-  if (currentModel && currentModel.vendor === 'vendor_b') {
-    const modelId = (currentModel.id || currentModel.name || '').toLowerCase()
-    const modelName = (currentModel.name || '').toLowerCase()
+  const modelCheck = models.value.find(m => m.id === selectedModel.value)
+  if (modelCheck && modelCheck.vendor === 'vendor_b') {
+    const modelId = (modelCheck.id || modelCheck.name || '').toLowerCase()
+    const modelName = (modelCheck.name || '').toLowerCase()
     const isI2VModel = modelId.includes('i2v') || modelName.includes('image.to.video')
     if (isI2VModel && uploadedFiles.value.length === 0 && referencedFiles.value.length === 0) {
       showToast('I2V（图生视频）模型需要上传参考图片', 'warning'); return
@@ -2053,14 +2511,118 @@ async function handleGenerate() {
   isGenerating.value = true
   hasInteracted.value = true
 
-  try {
-    let requestBody = buildGenerateRequest()
-    requestBody = JSON.parse(JSON.stringify(requestBody))
+  // 先保存当前输入信息
+  const currentPrompt = prompt.value
+  const currentUploadedFiles = [
+    ...uploadedFiles.value,
+    ...Object.values(dualUploadSlots.value).filter(f => f !== null)
+  ]
+  const currentModel = selectedModel.value
+  const currentType = selectedType.value
+  const currentQuality = selectedQuality.value
+  const currentFeature = selectedFeature.value
+  const currentRatio = selectedRatio.value
+  const currentDuration = videoDuration.value
 
+  // 先构建请求体（依赖当前输入状态）
+  let requestBody
+  try {
+    requestBody = buildGenerateRequest()
+    requestBody = JSON.parse(JSON.stringify(requestBody))
+  } catch (e) {
+    isGenerating.value = false
+    showToast(e.message, 'warning')
+    return
+  }
+
+  // 创建占位卡片（显示"生成中"）
+  const placeholderCard = {
+    id: Date.now(),
+    title: currentPrompt.slice(0, 30) + (currentPrompt.length > 30 ? '...' : ''),
+    prompt: currentPrompt,
+    type: currentType,
+    model: currentModel,
+    quality: currentQuality,
+    feature: currentFeature,
+    ratio: currentRatio,
+    duration: currentDuration,
+    taskId: null,
+    results: [],
+    status: 'generating',
+    loadingVideo: false,
+    uploadedInputFiles: [...currentUploadedFiles]
+  }
+
+  // 立即追加占位卡片到当前对话
+  let convId = activeConversationId.value
+  if (!convId) {
+    // 先通过 API 创建对话，获取后端分配的 conversation_id
+    try {
+      const res = await createConversationApi({ title: placeholderCard.title || '未命名对话' })
+      const apiConv = unwrapResponse(res.data)
+      convId = apiConv.conversation_id || apiConv.id
+    } catch (e) {
+      console.warn('创建对话失败，使用临时 ID:', e)
+      convId = `conv_${Date.now()}`
+    }
+    activeConversationId.value = convId
+    conversationHistory.value.unshift({
+      id: convId,
+      title: placeholderCard.title,
+      thumbnail: '',
+      type: currentType,
+      time: Date.now(),
+      cards: [placeholderCard]
+    })
+  } else {
+    const conv = conversationHistory.value.find(c => c.id === convId)
+    if (conv) {
+      conv.cards.push(placeholderCard)
+      conv.title = placeholderCard.title
+      conv.time = Date.now()
+    }
+  }
+
+  // 将 conversation_id 附加到请求体，后端会自动写 user/assistant 消息
+  requestBody.conversation_id = convId
+
+  // 立即清空输入框
+  prompt.value = ''
+  if (promptEditorRef.value) promptEditorRef.value.innerHTML = ''
+  if (promptEditorRefBottom.value) promptEditorRefBottom.value.innerHTML = ''
+  uploadedFiles.value = []
+  referencedFiles.value = []
+  clearDualUploadSlots()
+  atTags.value = []
+  activeAtTagId.value = null
+  atImageCounter = 0
+  atVideoCounter = 0
+  selectedFeature.value = ''
+
+  scrollToCanvasBottom()
+  nextTick(() => { if (window.lucide) lucide.createIcons() })
+
+  try {
     const totalSize = JSON.stringify(requestBody).length
     const timeoutMs = 360000
     console.log(`📤 发送生成请求... (大小: ${(totalSize / 1024).toFixed(1)}KB, 超时: ${timeoutMs / 1000}s)`)
     console.log('📤 请求参数:', { output_type: requestBody.output_type, model: requestBody.model, feature: requestBody.feature, prompt_len: requestBody.prompt?.length, files: requestBody.input_files?.length })
+
+    // 调试模式：仅打印请求体，不发送到后端
+    if (debugMode.value) {
+      console.log('%c🔧 [调试模式] 请求体（未发送到后端）', 'color: #f59e0b; font-weight: bold; font-size: 14px;')
+      console.log('%c📋 完整请求体:', 'color: #3b82f6; font-weight: bold;', JSON.parse(JSON.stringify(requestBody)))
+      console.log('%c📋 格式化 JSON:', 'color: #3b82f6; font-weight: bold;')
+      console.log(JSON.stringify(requestBody, null, 2))
+      // 模拟延迟后标记完成
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      placeholderCard.taskId = 'debug_task_' + Date.now()
+      placeholderCard.results = [{ type: 'image', url: '', id: 'debug_result' }]
+      placeholderCard.status = 'completed'
+      isGenerating.value = false
+      nextTick(() => { if (window.lucide) lucide.createIcons() })
+      return
+    }
 
     const response = await postJson(`${API_CONFIG.BASE_URL}/generate?sync=true`, requestBody, timeoutMs)
 
@@ -2070,66 +2632,32 @@ async function handleGenerate() {
 
     console.log('✅ 生成成功:', result)
 
-    const newCard = {
-      id: Date.now(),
-      title: prompt.value.slice(0, 30) + (prompt.value.length > 30 ? '...' : ''),
-      prompt: prompt.value,
-      type: selectedType.value,
-      model: selectedModel.value,
-      taskId: result.taskId,
-      results: result.results,
-      status: 'completed',
-      loadingVideo: false,
-      uploadedInputFiles: [...uploadedFiles.value]
+    // 更新占位卡片为完成状态
+    placeholderCard.taskId = result.taskId
+    placeholderCard.results = result.results
+    placeholderCard.status = 'completed'
+
+    // 生成完成后刷新积分
+    fetchUserPoints()
+
+    // 后端已通过 conversation_id 自动写入 user/assistant 消息
+    // 更新对话缩略图
+    const conv = conversationHistory.value.find(c => c.id === activeConversationId.value)
+    if (conv) {
+      conv.thumbnail = placeholderCard.results?.[0]?.url || conv.thumbnail
     }
 
-    // 追加到当前对话（同一对话内持续追加，不点新对话就不换）
-    let convId = activeConversationId.value
-    if (!convId) {
-      // 新对话：先尝试从 API 创建
-      const apiConv = await createConversationAPI(newCard)
-      convId = apiConv?.id || `conv_${Date.now()}`
-      activeConversationId.value = convId
-      conversationHistory.value.unshift({
-        id: convId,
-        title: newCard.title,
-        thumbnail: newCard.results?.[0]?.url || '',
-        type: selectedType.value,
-        time: Date.now(),
-        cards: [newCard]
-      })
-    } else {
-      const conv = conversationHistory.value.find(c => c.id === convId)
-      if (conv) {
-        conv.cards.push(newCard)
-        conv.title = newCard.title
-        conv.thumbnail = newCard.results?.[0]?.url || conv.thumbnail
-        conv.time = Date.now()
-      }
-      // 同步追加到后端
-      await appendCardToConversationAPI(convId, newCard)
-    }
     console.log('💳 已添加结果卡片, 当前对话卡片数:', generatedCards.value.length)
 
-    saveConversationsToLocal()
-
-    if (newCard.results.some(r => r.type === 'video')) await processVideoResults(newCard)
-
-    prompt.value = ''
-    if (promptEditorRef.value) promptEditorRef.value.innerHTML = ''
-    if (promptEditorRefBottom.value) promptEditorRefBottom.value.innerHTML = ''
-    uploadedFiles.value = []
-    referencedFiles.value = []
-    atTags.value = []
-    activeAtTagId.value = null
-    atImageCounter = 0
-    atVideoCounter = 0
-    selectedFeature.value = ''
+    if (placeholderCard.results.some(r => r.type === 'video')) await processVideoResults(placeholderCard)
 
     scrollToCanvasBottom()
     nextTick(() => { if (window.lucide) lucide.createIcons() })
   } catch (error) {
     console.error('❌ 生成失败:', error)
+    // 生成失败时，更新占位卡片状态
+    placeholderCard.status = 'failed'
+    placeholderCard.results = []
     showToast(`生成失败: ${error.message}`, 'error')
   } finally {
     isGenerating.value = false
@@ -2137,8 +2665,17 @@ async function handleGenerate() {
 }
 
 function scrollToCanvasBottom() {
-  const el = canvasContainer.value
-  if (el) { el.scrollTop = el.scrollHeight }
+  nextTick(() => {
+    // 优先滚动到最后一张卡片
+    const cards = document.querySelectorAll('.result-card-group')
+    if (cards.length > 0) {
+      const lastCard = cards[cards.length - 1]
+      lastCard.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      const el = canvasContainer.value
+      if (el) { el.scrollTop = el.scrollHeight }
+    }
+  })
 }
 
 function useAsInput(result) {
@@ -2207,7 +2744,7 @@ function getAuthToken() {
   return ''
 }
 
-// ========== 对话管理 API ==========
+// ========== 通用 API 请求（非对话模块使用） ==========
 async function apiFetch(path, options = {}) {
   const url = `${API_CONFIG.BASE_URL}${path}`
   const headers = {
@@ -2226,72 +2763,112 @@ async function apiFetch(path, options = {}) {
   }
 }
 
-async function loadConversationsFromAPI() {
-  const data = await apiFetch('/conversations?page=1&page_size=50')
-  if (!data || !data.items) return false
-  // API 返回空列表时，不覆盖本地已有数据
-  if (data.items.length === 0 && conversationHistory.value.length > 0) return true
-  conversationHistory.value = data.items.map(c => ({
-    id: c.id,
-    title: c.title,
-    type: c.type,
-    thumbnail: c.thumbnail || '',
-    time: new Date(c.updated_at || c.created_at).getTime(),
-    cards: []  // 详情在切换时按需加载
-  }))
-  return true
-}
+// ========== 对话管理 API（对接 CONVERSATION_API 文档） ==========
 
-async function loadConversationDetail(id) {
-  const data = await apiFetch(`/conversations/${id}`)
-  if (!data) return false
-  const conv = conversationHistory.value.find(c => c.id === id)
-  if (conv) {
-    conv.cards = (data.cards || []).map(card => ({
-      id: card.id,
-      title: card.title,
-      prompt: card.prompt,
-      type: card.type,
-      model: card.model,
-      taskId: card.task_id,
-      results: card.results || [],
-      status: card.status || 'completed',
-      loadingVideo: false,
-      uploadedInputFiles: card.input_files || []
-    }))
-    conv.title = data.title
-    conv.thumbnail = data.thumbnail || conv.thumbnail
+/**
+ * 解包 API 响应：兼容 { code, data } 包装和直接返回业务数据两种格式
+ */
+function unwrapResponse(resData) {
+  if (resData && resData.code === 200 && resData.data !== undefined) {
+    return resData.data
   }
-  return true
+  return resData
 }
 
-async function createConversationAPI(card) {
-  const data = await apiFetch('/conversations', {
-    method: 'POST',
-    body: JSON.stringify({ title: card.title, type: card.type })
-  })
-  return data  // 返回 { id, title, ... } 或 null
+/**
+ * 从后端加载对话列表
+ * GET /api/v1/conversations?limit=50&offset=0
+ */
+async function loadConversationsFromAPI() {
+  try {
+    const res = await listConversationsApi({ limit: 50, offset: 0 })
+    const data = unwrapResponse(res.data)
+    if (!data || !data.items) return false
+    if (data.items.length === 0 && conversationHistory.value.length > 0) return true
+    conversationHistory.value = data.items.map(c => ({
+      id: c.conversation_id || c.id,
+      title: c.title || '未命名对话',
+      type: '',
+      thumbnail: '',
+      time: new Date(c.updated_at || c.created_at).getTime(),
+      cards: [] // 详情在切换时按需加载
+    }))
+    return true
+  } catch (e) {
+    console.warn('加载对话列表失败:', e)
+    return false
+  }
 }
 
-async function appendCardToConversationAPI(convId, card) {
-  const data = await apiFetch(`/conversations/${convId}/cards`, {
-    method: 'POST',
-    body: JSON.stringify({
-      title: card.title,
-      prompt: card.prompt,
-      type: card.type,
-      model: card.model,
-      task_id: card.taskId,
-      status: card.status,
-      results: card.results,
-      input_files: card.uploadedInputFiles || []
+/**
+ * 从消息列表恢复对话卡片
+ * GET /api/v1/conversations/{id}/messages
+ * 消息中 role=assistant 且有 result_video_url 的条目映射为卡片
+ */
+async function loadConversationDetail(id) {
+  try {
+    // 先获取对话详情更新标题等
+    const detailRes = await getConversationApi(id)
+    const detail = unwrapResponse(detailRes.data)
+    const conv = conversationHistory.value.find(c => c.id === id)
+    if (conv && detail) {
+      conv.title = detail.title || conv.title
+    }
+
+    // 获取消息列表，从中重建卡片
+    const msgRes = await listMessagesApi(id, { limit: 500, offset: 0 })
+    const msgData = unwrapResponse(msgRes.data)
+    if (!msgData || !msgData.items || !conv) return false
+
+    const cards = []
+    const messages = msgData.items
+
+    // 将 user+assistant 消息对映射为卡片
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (msg.role === 'assistant' && msg.result_task_id) {
+        // 找到对应的 user 消息（通常是前一条）
+        const userMsg = messages.slice(0, i).reverse().find(m => m.role === 'user' && m.generation_task_id === msg.result_task_id)
+        cards.push({
+          id: msg.message_id || msg.id || Date.now() + i,
+          title: (userMsg?.content || '').slice(0, 30) + ((userMsg?.content || '').length > 30 ? '...' : ''),
+          prompt: userMsg?.content || '',
+          type: msg.result_video_url ? 'video' : 'image',
+          model: '',
+          taskId: msg.result_task_id,
+          results: buildResultsFromMessage(msg),
+          status: 'completed',
+          loadingVideo: false,
+          uploadedInputFiles: []
+        })
+      }
+    }
+
+    conv.cards = cards
+    conv.thumbnail = cards.length > 0 && cards[0].results.length > 0
+      ? cards[0].results[0].thumbnail || cards[0].results[0].url || ''
+      : conv.thumbnail
+    return true
+  } catch (e) {
+    console.warn('加载对话详情失败:', e)
+    return false
+  }
+}
+
+/**
+ * 从 assistant 消息构建 results 数组
+ */
+function buildResultsFromMessage(msg) {
+  const results = []
+  if (msg.result_video_url) {
+    results.push({
+      type: 'video',
+      url: msg.result_video_url,
+      thumbnail: msg.result_thumbnail_url || '',
+      id: msg.result_task_id || 'res_0'
     })
-  })
-  return data
-}
-
-async function deleteConversationAPI(id) {
-  await apiFetch(`/conversations/${id}`, { method: 'DELETE' })
+  }
+  return results
 }
 
 // ========== 生命周期 ==========
@@ -2301,28 +2878,10 @@ watch(hasInteracted, () => {
 })
 
 onMounted(async () => {
-  // 优先从 API 加载，失败则降级读 localStorage
-  const apiOk = await loadConversationsFromAPI()
-  if (!apiOk) {
-    loadConversationsFromLocal()
-  } else {
-    // API 成功但 cards 为空，尝试从 localStorage 补充 cards 数据
-    try {
-      const raw = localStorage.getItem('szg_conversations')
-      if (raw) {
-        const localData = JSON.parse(raw)
-        for (const conv of conversationHistory.value) {
-          if (conv.cards.length === 0) {
-            const localConv = localData.find(lc => lc.id === conv.id)
-            if (localConv?.cards?.length > 0) {
-              conv.cards = localConv.cards.map(card => ({ ...card, loadingVideo: false, uploadedInputFiles: card.uploadedInputFiles || [] }))
-            }
-          }
-        }
-      }
-    } catch (e) { /* ignore */ }
-  }
+  // 从 API 加载对话列表
+  await loadConversationsFromAPI()
   await initModels()
+  fetchUserPoints()
   document.addEventListener('click', handleGlobalClick)
   if (window.lucide) lucide.createIcons()
 })
@@ -2337,6 +2896,9 @@ function handleGlobalClick(e) {
   }
   if (!e.target.closest('.upload-dropdown') && !e.target.closest('.upload-menu')) {
     isUploadDropdownOpen.value = false
+  }
+  if (!e.target.closest('.dual-upload-slot-wrap')) {
+    dualUploadDropdown.value = null
   }
 }
 </script>
@@ -2354,7 +2916,7 @@ function handleGlobalClick(e) {
 /* ====== 左侧对话历史侧边栏 ====== */
 .jimeng-left-sidebar {
   width: 260px;
-  min-width: 260px;
+  min-width: 200px;
   height: 100%;
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
@@ -2362,6 +2924,7 @@ function handleGlobalClick(e) {
   flex-direction: column;
   overflow: hidden;
   z-index: 10;
+  flex-shrink: 1;
 }
 
 .sidebar-header {
@@ -2376,25 +2939,6 @@ function handleGlobalClick(e) {
   font-size: 15px;
   font-weight: 600;
   color: #1f2937;
-}
-
-.sidebar-collapse-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  transition: all 0.2s;
-}
-
-.sidebar-collapse-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
 }
 
 .new-chat-btn {
@@ -2848,6 +3392,107 @@ function handleGlobalClick(e) {
   color: #111827;
 }
 
+/* 双上传框 */
+.dual-upload-bar {
+  display: flex;
+  gap: 12px;
+  padding: 10px 16px 0;
+}
+
+.dual-upload-slot {
+  flex: 1;
+  min-height: 80px;
+  border: 2px dashed #e5e7eb;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  background: #fafbfc;
+}
+
+.dual-upload-slot:hover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.dual-upload-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 8px;
+}
+
+.dual-upload-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.dual-upload-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: background 0.15s;
+}
+
+.dual-upload-remove:hover {
+  background: #ef4444;
+}
+
+.dual-upload-placeholder {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.dual-upload-slot-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.dual-upload-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+  min-width: 160px;
+}
+
 /* 媒体素材栏 */
 .media-bar {
   padding: 8px 16px 0;
@@ -3081,11 +3726,42 @@ function handleGlobalClick(e) {
   color: #2563eb;
 }
 
+.option-chip.sound-chip.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.option-chip.sound-chip .sound-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .footer-right {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.price-estimate-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #f59e0b;
+  font-weight: 500;
+  background: #fffbeb;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #fde68a;
+  white-space: nowrap;
+}
+
+.price-estimate-mini.loading {
+  color: #9ca3af;
+  background: #f9fafb;
+  border-color: #e5e7eb;
 }
 
 .char-count-mini {
@@ -3312,14 +3988,55 @@ function handleGlobalClick(e) {
   position: relative;
 }
 
-.interaction-topbar {
+.card-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
   flex-shrink: 0;
+  margin-bottom: -1px;
+  gap: 8px;
+}
+
+.card-thumb-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.card-thumb-item {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1.5px solid #e5e7eb;
+  flex-shrink: 0;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-thumb-video,
+.card-thumb-file {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  background: #eef2ff;
 }
 
 .topbar-context {
@@ -3387,7 +4104,7 @@ function handleGlobalClick(e) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 300px;
+  max-width: 200px;
 }
 
 .topbar-context.is-expanded .context-prompt {
@@ -3422,6 +4139,30 @@ function handleGlobalClick(e) {
 
 .context-sep {
   color: #d1d5db;
+}
+
+.context-feature {
+  font-size: 11px;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.context-ratio {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.context-duration {
+  font-size: 11px;
+  color: #2563eb;
+  background: #dbeafe;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 .topbar-actions {
@@ -3529,6 +4270,11 @@ function handleGlobalClick(e) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 20px;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 16px;
+  background: #ffffff;
 }
 
 .result-image-item {
@@ -3692,9 +4438,33 @@ function handleGlobalClick(e) {
   gap: 10px;
   padding: 48px;
   background: #f9fafb;
-  border-radius: 12px;
+  border-radius: 0 0 10px 10px;
+  border: 1px solid #e5e7eb;
+  border-top: none;
   color: #9ca3af;
   font-size: 14px;
+}
+
+.card-failed {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.card-failed .retry-btn {
+  padding: 4px 14px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.card-failed .retry-btn:hover {
+  background: #b91c1c;
 }
 
 .result-actions-row {
@@ -3724,6 +4494,40 @@ function handleGlobalClick(e) {
   background: #f3f4f6;
   border-color: #d1d5db;
   color: #1f2937;
+}
+
+.result-feedback-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  background: #f3f4f6;
+  border-radius: 20px;
+  padding: 2px;
+}
+
+.result-feedback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.result-feedback-btn:hover {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.result-feedback-btn.active {
+  color: #3b82f6;
+  background: #dbeafe;
 }
 
 .results-empty {
@@ -3793,5 +4597,180 @@ function handleGlobalClick(e) {
     max-width: 100%;
     gap: 14px;
   }
+}
+
+/* 调试开关 */
+.debug-toggle {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e5e7eb;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  user-select: none;
+}
+
+.debug-toggle:hover {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.debug-toggle.active {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #d97706;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+/* 云资料库弹窗 */
+.cloud-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.cloud-modal-content {
+  background: #fff;
+  border-radius: 16px;
+  width: 560px;
+  max-width: 90vw;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.cloud-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cloud-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.cloud-modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-size: 18px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.cloud-modal-close:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.cloud-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.cloud-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: #9ca3af;
+}
+
+.cloud-empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.cloud-assets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.cloud-asset-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cloud-asset-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.cloud-asset-thumb {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cloud-asset-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cloud-asset-placeholder {
+  color: #9ca3af;
+}
+
+.cloud-asset-info {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cloud-asset-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cloud-asset-size {
+  font-size: 11px;
+  color: #9ca3af;
 }
 </style>

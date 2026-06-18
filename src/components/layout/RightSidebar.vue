@@ -2,30 +2,41 @@
   <aside class="right-sidebar">
     <!-- 用户信息和统计数据 -->
     <div class="user-section">
-      <div class="user-profile" @click="$router.push('/profile')">
-        <!-- 用户头像 -->
-        <div class="user-avatar">{{ userData.user.avatar }}</div>
+      <!-- 未登录状态 -->
+      <div v-if="!userStore.isLoggedIn" class="user-profile login-prompt" @click="$router.push('/login')">
+        <div class="user-avatar">?</div>
         <div class="user-details">
-          <div class="user-name-row">
-            <span class="user-name">{{ userData.user.name }}</span>
-            <!-- VIP标识 -->
-            <span v-if="userData.user.isVip" class="vip-badge">
-              <i data-lucide="crown" style="width: 10px; height: 10px;"></i>
-              VIP
-            </span>
+          <span class="user-name">点击登录</span>
+          <p class="user-id">登录后查看更多信息</p>
+        </div>
+      </div>
+      <!-- 已登录状态 -->
+      <template v-else>
+        <div class="user-profile" @click="$router.push('/profile')">
+          <!-- 用户头像 -->
+          <div class="user-avatar">{{ displayAvatar }}</div>
+          <div class="user-details">
+            <div class="user-name-row">
+              <span class="user-name">{{ displayName }}</span>
+              <!-- VIP标识 -->
+              <span v-if="displayIsVip" class="vip-badge">
+                <i data-lucide="crown" style="width: 10px; height: 10px;"></i>
+                VIP
+              </span>
+            </div>
+            <p class="user-id">ID: {{ displayUserId }}</p>
+            <p v-if="displayVipExpiry" class="user-date">会员有效期：{{ displayVipExpiry }}</p>
           </div>
-          <p class="user-id">ID: {{ userData.user.id }}</p>
-          <p class="user-date">会员有效期：{{ userData.user.vipExpiry }}</p>
         </div>
-      </div>
 
-      <!-- 统计数据网格 -->
-      <div class="stats-grid">
-        <div v-for="(stat, index) in userStats" :key="index" class="stat-card">
-          <div class="stat-number">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
+        <!-- 统计数据网格 -->
+        <div class="stats-grid">
+          <div v-for="(stat, index) in userStats" :key="index" class="stat-card">
+            <div class="stat-number">{{ stat.value }}</div>
+            <div class="stat-label">{{ stat.label }}</div>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <!-- 平台公告 -->
@@ -72,19 +83,48 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../../stores/user'
 import { userData } from '../../data/userData'
 import { getLatestAnnouncementsApi } from '../../api/announcement'
 
 const router = useRouter()
+const userStore = useUserStore()
 
-const userStats = [
-  { value: userData.user.stats.works, label: '我的作品' },
-  { value: userData.user.stats.drafts, label: '草稿箱' },
-  { value: userData.user.stats.favorites, label: '收藏夹' },
-  { value: userData.user.stats.assets, label: '素材库' }
-]
+// 从后端用户数据计算显示值
+const displayAvatar = computed(() => {
+  const name = userStore.user?.name || ''
+  return name ? name.charAt(0) : '?'
+})
+
+const displayName = computed(() => {
+  return userStore.user?.name || '未知用户'
+})
+
+const displayUserId = computed(() => {
+  return userStore.user?.user_id || userStore.user?.enterprise_id || '--'
+})
+
+const displayIsVip = computed(() => {
+  return userStore.user?.permission_level >= 5
+})
+
+const displayVipExpiry = computed(() => {
+  // 后端暂无会员有效期字段，后续可扩展
+  return userStore.user?.vip_expiry || ''
+})
+
+const userStats = computed(() => {
+  // 优先使用后端返回的统计数据，否则使用本地默认
+  const stats = userStore.user?.stats || userData.user.stats
+  return [
+    { value: stats.works, label: '我的作品' },
+    { value: stats.drafts, label: '草稿箱' },
+    { value: stats.favorites, label: '收藏夹' },
+    { value: stats.assets, label: '素材库' }
+  ]
+})
 
 const announcements = ref(userData.announcements)
 const recommendedTools = userData.recommendedTools
@@ -111,7 +151,7 @@ function goToAnnouncement(id) {
 
 async function fetchLatestAnnouncements() {
   try {
-    const res = await getLatestAnnouncementsApi({ limit: 5 })
+    const res = await getLatestAnnouncementsApi({ limit: 4 })
     if (res.data && res.data.length > 0) {
       announcements.value = res.data.map(item => ({
         id: item.id,
@@ -126,11 +166,21 @@ async function fetchLatestAnnouncements() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (window.lucide) {
     lucide.createIcons()
   }
   fetchLatestAnnouncements()
+  // 登录状态下获取最新用户信息
+  if (userStore.isLoggedIn) {
+    try {
+      await userStore.fetchProfile()
+      // 重新渲染 lucide 图标（VIP徽章等可能变化）
+      if (window.lucide) lucide.createIcons()
+    } catch {
+      // 获取失败不影响页面展示
+    }
+  }
 })
 </script>
 
@@ -171,6 +221,10 @@ onMounted(() => {
   padding: 0;
   margin-bottom: 12px;
   cursor: pointer;
+}
+
+.user-profile.login-prompt {
+  margin-bottom: 0;
 }
 
 .user-avatar {

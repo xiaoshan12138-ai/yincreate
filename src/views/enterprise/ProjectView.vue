@@ -21,7 +21,7 @@
           <h2 class="project-title">项目管理</h2>
           <p class="project-subtitle">项目制协作管理中心 - 管理项目进度与资源分配</p>
         </div>
-        <button class="add-project-btn">
+        <button class="add-project-btn" @click="openAddProjectModal">
           <i data-lucide="plus" style="width: 15px; height: 15px;"></i>
           新建项目
         </button>
@@ -97,6 +97,12 @@
               <option>已完成</option>
               <option>超支预警</option>
             </select>
+            <div class="date-filter-wrap">
+              <label class="date-filter-label">立项时间</label>
+              <input v-model="startDateFilter" type="date" class="date-filter-input" placeholder="开始日期">
+              <span class="date-filter-sep">至</span>
+              <input v-model="endDateFilter" type="date" class="date-filter-input" placeholder="结束日期">
+            </div>
             <button class="export-btn">
               <i data-lucide="download" style="width: 14px; height: 14px;"></i>
               导出报表
@@ -216,14 +222,102 @@
               <div class="mini-stat"><i data-lucide="user-circle" style="width: 14px; height: 14px;"></i><span>{{ selectedProject.avatar }} 数字人</span></div>
             </div>
 
-            <h4 class="section-subtitle">关联订单记录</h4>
-            <div class="orders-list">
-              <div v-for="order in selectedProject.orders" :key="order.orderId" class="order-item">
-                <span class="order-type-badge" :class="'type-' + order.type.toLowerCase()">{{ order.type }}</span>
-                <span class="order-cost">¥{{ order.cost }}</span>
-                <span class="order-model">{{ order.model }}</span>
+            <h4 class="section-subtitle">生成记录</h4>
+            <div class="gen-records-table-wrap">
+              <table class="gen-records-table">
+                <thead>
+                  <tr>
+                    <th>订单ID</th>
+                    <th>人员ID</th>
+                    <th>人员称呼</th>
+                    <th>账号ID</th>
+                    <th>项目ID</th>
+                    <th>项目名称</th>
+                    <th>生成类型</th>
+                    <th>额度消耗</th>
+                    <th>模型</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="record in selectedProject.genRecords" :key="record.orderId">
+                    <td>{{ record.orderId }}</td>
+                    <td>{{ record.personnelId }}</td>
+                    <td>{{ record.personnelName }}</td>
+                    <td>{{ record.accountId }}</td>
+                    <td>{{ selectedProject.projectId }}</td>
+                    <td>{{ selectedProject.name }}</td>
+                    <td><span class="order-type-badge" :class="'type-' + record.type.toLowerCase()">{{ record.type }}</span></td>
+                    <td class="cell-cost">¥{{ record.cost }}</td>
+                    <td>{{ record.model }}</td>
+                  </tr>
+                  <tr v-if="!selectedProject.genRecords || selectedProject.genRecords.length === 0">
+                    <td colspan="9" class="no-records">暂无生成记录</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 新建项目弹窗 -->
+      <div v-if="showAddProjectModal" class="modal-overlay" @click.self="closeAddProjectModal">
+        <div class="modal-content-personnel">
+          <div class="modal-header-personnel">
+            <h3 class="modal-title-personnel">新建项目</h3>
+            <button class="close-modal-btn" @click="closeAddProjectModal">×</button>
+          </div>
+          <div class="modal-body-personnel">
+            <div class="add-project-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">项目名称 <span class="required">*</span></label>
+                  <input type="text" v-model="addProjectForm.name" placeholder="请输入项目名称" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">所属部门 <span class="required">*</span></label>
+                  <select v-model="addProjectForm.department" class="form-select">
+                    <option value="">请选择部门</option>
+                    <option>公司</option>
+                    <option>漫剧部</option>
+                    <option>电商部</option>
+                    <option>漫剧1组</option>
+                    <option>漫剧2组</option>
+                    <option>电商1组</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">立项时间 <span class="required">*</span></label>
+                  <input type="date" v-model="addProjectForm.startDate" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">预计结项时间</label>
+                  <input type="date" v-model="addProjectForm.endDate" class="form-input">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">初始配额(¥) <span class="required">*</span></label>
+                  <input type="number" v-model="addProjectForm.allocated" placeholder="请输入配额金额" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">项目负责人</label>
+                  <input type="text" v-model="addProjectForm.manager" placeholder="请输入负责人姓名" class="form-input">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group full-width">
+                  <label class="form-label">项目描述</label>
+                  <textarea v-model="addProjectForm.description" placeholder="请输入项目描述信息..." class="form-textarea" rows="3"></textarea>
+                </div>
               </div>
             </div>
+          </div>
+          <div class="modal-footer-personnel">
+            <button class="btn-cancel" @click="closeAddProjectModal">取消</button>
+            <button class="btn-submit" @click="submitAddProject">确认创建</button>
           </div>
         </div>
       </div>
@@ -243,10 +337,22 @@ const activeTab = ref('项目管理')
 const searchKeyword = ref('')
 const departmentFilter = ref('全部')
 const statusFilter = ref('全部')
+const startDateFilter = ref('')
+const endDateFilter = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const showDetailModal = ref(false)
 const selectedProject = ref(null)
+const showAddProjectModal = ref(false)
+const addProjectForm = ref({
+  name: '',
+  department: '',
+  startDate: '',
+  endDate: '',
+  allocated: '',
+  manager: '',
+  description: ''
+})
 
 const stats = ref({
   total: 6,
@@ -257,12 +363,32 @@ const stats = ref({
 })
 
 const projects = ref([
-  { projectId: 301, name: '品牌宣传片', startDate: '2025-03-01', endDate: '', allocated: 80000, used: 55000, remaining: 22000, expired: 3000, video: 25, image: 12, text: 40, audio: 5, avatar: 3, orders: [{ orderId: 'ORD-20250501', type: '视频', cost: '¥2,500', model: 'Sora' }, { orderId: 'ORD-20250428', type: '图片', cost: '¥800', model: 'DALL-E 3' }, { orderId: 'ORD-20250420', type: '数字人', cost: '¥1,200', model: 'HeyGen' }] },
-  { projectId: 302, name: '产品展示视频', startDate: '2025-04-15', endDate: '', allocated: 70000, used: 57000, remaining: 11000, expired: 2000, video: 15, image: 11, text: 65, audio: 6, avatar: 4, orders: [{ orderId: 'ORD-20250502', type: '文字', cost: '¥350', model: 'GPT-4o' }, { orderId: 'ORD-20250429', type: '视频', cost: '¥1,800', model: 'Runway Gen-3' }] },
-  { projectId: 303, name: '漫剧A制作', startDate: '2025-02-10', endDate: '2025-06-30', allocated: 95000, used: 72000, remaining: 18000, expired: 5000, video: 38, image: 22, text: 65, audio: 8, avatar: 5, orders: [{ orderId: 'ORD-20250503', type: '视频', cost: '¥3,200', model: 'Kling' }, { orderId: 'ORD-20250427', type: '音频', cost: '¥600', model: 'ElevenLabs' }, { orderId: 'ORD-20250418', type: '图片', cost: '¥1,100', model: 'Midjourney v6' }] },
-  { projectId: 304, name: '漫剧B制作', startDate: '2025-05-01', endDate: '', allocated: 60000, used: 43000, remaining: 14000, expired: 3000, video: 19, image: 16, text: 70, audio: 8, avatar: 5, orders: [{ orderId: 'ORD-20250505', type: '文字', cost: '¥280', model: 'Claude 3.5' }, { orderId: 'ORD-20250426', type: '视频', cost: '¥2,100', model: 'Pika 2.0' }] },
-  { projectId: 305, name: '电商直播素材', startDate: '2025-04-01', endDate: '', allocated: 55000, used: 38000, remaining: 14000, expired: 3000, video: 15, image: 28, text: 35, audio: 3, avatar: 3, orders: [{ orderId: 'ORD-20250506', type: '图片', cost: '¥950', model: 'Stable Diffusion XL' }, { orderId: 'ORD-20250422', type: '数字人', cost: '¥1,800', model: 'D-ID' }] },
-  { projectId: 306, name: '社交媒体推广', startDate: '2025-05-10', endDate: '', allocated: 40000, used: 22000, remaining: 15000, expired: 3000, video: 3, image: 27, text: 40, audio: 4, avatar: 3, orders: [{ orderId: 'ORD-20250508', type: '文字', cost: '¥420', model: 'Gemini Pro' }, { orderId: 'ORD-20250424', type: '图片', cost: '¥680', model: 'Flux Pro' }] }
+  { projectId: 301, name: '品牌宣传片', startDate: '2025-03-01', endDate: '', allocated: 80000, used: 55000, remaining: 22000, expired: 3000, video: 25, image: 12, text: 40, audio: 5, avatar: 3, genRecords: [
+    { orderId: 'ORD-20250501', personnelId: 'P-1001', personnelName: '张明', accountId: 'ACC-2001', type: '视频', cost: '2,500', model: 'Sora' },
+    { orderId: 'ORD-20250428', personnelId: 'P-1002', personnelName: '李华', accountId: 'ACC-2002', type: '图片', cost: '800', model: 'DALL-E 3' },
+    { orderId: 'ORD-20250420', personnelId: 'P-1001', personnelName: '张明', accountId: 'ACC-2001', type: '数字人', cost: '1,200', model: 'HeyGen' }
+  ] },
+  { projectId: 302, name: '产品展示视频', startDate: '2025-04-15', endDate: '', allocated: 70000, used: 57000, remaining: 11000, expired: 2000, video: 15, image: 11, text: 65, audio: 6, avatar: 4, genRecords: [
+    { orderId: 'ORD-20250502', personnelId: 'P-1003', personnelName: '王芳', accountId: 'ACC-2003', type: '文字', cost: '350', model: 'GPT-4o' },
+    { orderId: 'ORD-20250429', personnelId: 'P-1004', personnelName: '赵强', accountId: 'ACC-2004', type: '视频', cost: '1,800', model: 'Runway Gen-3' }
+  ] },
+  { projectId: 303, name: '漫剧A制作', startDate: '2025-02-10', endDate: '2025-06-30', allocated: 95000, used: 72000, remaining: 18000, expired: 5000, video: 38, image: 22, text: 65, audio: 8, avatar: 5, genRecords: [
+    { orderId: 'ORD-20250503', personnelId: 'P-1005', personnelName: '刘洋', accountId: 'ACC-2005', type: '视频', cost: '3,200', model: 'Kling' },
+    { orderId: 'ORD-20250427', personnelId: 'P-1006', personnelName: '陈静', accountId: 'ACC-2006', type: '音频', cost: '600', model: 'ElevenLabs' },
+    { orderId: 'ORD-20250418', personnelId: 'P-1005', personnelName: '刘洋', accountId: 'ACC-2005', type: '图片', cost: '1,100', model: 'Midjourney v6' }
+  ] },
+  { projectId: 304, name: '漫剧B制作', startDate: '2025-05-01', endDate: '', allocated: 60000, used: 43000, remaining: 14000, expired: 3000, video: 19, image: 16, text: 70, audio: 8, avatar: 5, genRecords: [
+    { orderId: 'ORD-20250505', personnelId: 'P-1007', personnelName: '周磊', accountId: 'ACC-2007', type: '文字', cost: '280', model: 'Claude 3.5' },
+    { orderId: 'ORD-20250426', personnelId: 'P-1008', personnelName: '吴婷', accountId: 'ACC-2008', type: '视频', cost: '2,100', model: 'Pika 2.0' }
+  ] },
+  { projectId: 305, name: '电商直播素材', startDate: '2025-04-01', endDate: '', allocated: 55000, used: 38000, remaining: 14000, expired: 3000, video: 15, image: 28, text: 35, audio: 3, avatar: 3, genRecords: [
+    { orderId: 'ORD-20250506', personnelId: 'P-1009', personnelName: '孙丽', accountId: 'ACC-2009', type: '图片', cost: '950', model: 'Stable Diffusion XL' },
+    { orderId: 'ORD-20250422', personnelId: 'P-1010', personnelName: '郑凯', accountId: 'ACC-2010', type: '数字人', cost: '1,800', model: 'D-ID' }
+  ] },
+  { projectId: 306, name: '社交媒体推广', startDate: '2025-05-10', endDate: '', allocated: 40000, used: 22000, remaining: 15000, expired: 3000, video: 3, image: 27, text: 40, audio: 4, avatar: 3, genRecords: [
+    { orderId: 'ORD-20250508', personnelId: 'P-1011', personnelName: '黄鑫', accountId: 'ACC-2011', type: '文字', cost: '420', model: 'Gemini Pro' },
+    { orderId: 'ORD-20250424', personnelId: 'P-1012', personnelName: '林悦', accountId: 'ACC-2012', type: '图片', cost: '680', model: 'Flux Pro' }
+  ] }
 ])
 
 const filteredProjects = computed(() => {
@@ -274,6 +400,28 @@ const filteredProjects = computed(() => {
       String(p.projectId).includes(q) ||
       p.name.toLowerCase().includes(q)
     )
+  }
+
+  if (departmentFilter.value && departmentFilter.value !== '全部' && departmentFilter.value !== '全部部门') {
+    result = result.filter(p => p.department === departmentFilter.value)
+  }
+
+  if (statusFilter.value && statusFilter.value !== '全部' && statusFilter.value !== '全部状态') {
+    if (statusFilter.value === '进行中') {
+      result = result.filter(p => !p.endDate)
+    } else if (statusFilter.value === '已完成') {
+      result = result.filter(p => p.endDate)
+    } else if (statusFilter.value === '超支预警') {
+      result = result.filter(p => p.used / p.allocated > 0.8)
+    }
+  }
+
+  if (startDateFilter.value) {
+    result = result.filter(p => p.startDate && p.startDate >= startDateFilter.value)
+  }
+
+  if (endDateFilter.value) {
+    result = result.filter(p => p.startDate && p.startDate <= endDateFilter.value)
   }
 
   return result
@@ -320,6 +468,54 @@ const closeDetail = () => {
   selectedProject.value = null
 }
 
+const openAddProjectModal = () => {
+  addProjectForm.value = {
+    name: '',
+    department: '',
+    startDate: '',
+    endDate: '',
+    allocated: '',
+    manager: '',
+    description: ''
+  }
+  showAddProjectModal.value = true
+  nextTick(() => {
+    if (window.lucide) lucide.createIcons()
+  })
+}
+
+const closeAddProjectModal = () => {
+  showAddProjectModal.value = false
+}
+
+const submitAddProject = () => {
+  if (!addProjectForm.value.name.trim() || !addProjectForm.value.startDate || !addProjectForm.value.allocated) return
+  const newId = Math.max(...projects.value.map(p => p.projectId)) + 1
+  const allocated = parseInt(addProjectForm.value.allocated) || 0
+  projects.value.push({
+    projectId: newId,
+    name: addProjectForm.value.name,
+    department: addProjectForm.value.department,
+    startDate: addProjectForm.value.startDate,
+    endDate: addProjectForm.value.endDate || '',
+    allocated: allocated,
+    used: 0,
+    remaining: allocated,
+    expired: 0,
+    video: 0,
+    image: 0,
+    text: 0,
+    audio: 0,
+    avatar: 0,
+    orders: [],
+    genRecords: []
+  })
+  stats.value.total = projects.value.length
+  stats.value.ongoing = projects.value.filter(p => !p.endDate).length
+  stats.value.planning = projects.value.filter(p => !p.endDate && p.used === 0).length
+  showAddProjectModal.value = false
+}
+
 onMounted(() => {
   setTimeout(() => {
     if (window.lucide) lucide.createIcons()
@@ -336,10 +532,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border: 1.5px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 
@@ -586,6 +780,180 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+/* 日期筛选 */
+.date-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+}
+
+.date-filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.date-filter-input {
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: white;
+  outline: none;
+  min-width: 120px;
+}
+
+.date-filter-input:focus {
+  border-color: var(--primary-color);
+}
+
+.date-filter-input::-webkit-datetime-edit {
+  font-size: 12px;
+}
+
+.date-filter-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.date-filter-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.date-filter-sep {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 新建项目表单 */
+.add-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-label .required {
+  color: #dc2626;
+}
+
+.form-input {
+  padding: 9px 14px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: #f8fafc;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: var(--primary-color);
+  background: white;
+}
+
+.form-select {
+  padding: 9px 14px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: #f8fafc;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.form-select:focus {
+  border-color: var(--primary-color);
+}
+
+.form-textarea {
+  padding: 9px 14px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: #f8fafc;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.form-textarea:focus {
+  border-color: var(--primary-color);
+  background: white;
+}
+
+.modal-footer-personnel {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-light);
+}
+
+.btn-cancel {
+  padding: 9px 24px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #f8fafc;
+}
+
+.btn-submit {
+  padding: 9px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
 .cell-proj-id { font-family: monospace; font-weight: 600; }
 .cell-proj-name { font-weight: 600; }
 .cell-date { font-family: monospace; }
@@ -816,9 +1184,58 @@ onMounted(() => {
 .type-视频 { background: #dbeafe; color: #2563eb; }
 .type-图片 { background: #dcfce7; color: #16a34a; }
 .type-文字 { background: #fef3c7; color: #d97706; }
-.type-音频 { background: #ede9fe; color: #7c3aed; }
+.type-音频 { background: #dbeafe; color: #2563eb; }
 .type-数字人 { background: #fce7f3; color: #db2777; }
 
 .order-cost { font-weight: 700; color: var(--text-primary); flex: 1; }
 .order-model { font-size: 11.5px; color: var(--text-secondary); background: white; padding: 3px 8px; border-radius: 4px; }
+
+/* 生成记录表格 */
+.gen-records-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.gen-records-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.gen-records-table thead {
+  background: #f8fafc;
+}
+
+.gen-records-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.gen-records-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.gen-records-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.gen-records-table .cell-cost {
+  font-weight: 600;
+  color: #111827;
+}
+
+.gen-records-table .no-records {
+  text-align: center;
+  color: #9ca3af;
+  padding: 24px 12px;
+}
 </style>

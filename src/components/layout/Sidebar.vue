@@ -3,10 +3,11 @@
     <!-- Logo区域 -->
     <div class="sidebar-logo">
       <div class="logo-icon">
-        <i data-lucide="play" style="width: 22px; height: 22px;"></i>
+        <img v-if="appStore.siteFavicon" :src="appStore.siteFavicon" class="logo-custom-icon" />
+        <i v-else data-lucide="play" style="width: 22px; height: 22px;"></i>
       </div>
       <div class="logo-text">
-        <h1>影创studio</h1>
+        <h1>{{ appStore.siteTitle || '影创studio' }}</h1>
         <p>AI 视频创作平台</p>
       </div>
     </div>
@@ -28,11 +29,12 @@
 
     <!-- 会员卡片 -->
     <div class="member-card">
-      <div class="member-header">
-        <i data-lucide="crown" class="crown-icon"></i>
-        <span class="member-title">开通会员</span>
+      <!-- 剩余积分显示 -->
+      <div class="points-display">
+        <i data-lucide="coins" class="points-icon"></i>
+        <span class="points-label">剩余积分</span>
+        <span class="points-value">{{ remainingPoints }}</span>
       </div>
-      <p class="member-desc">解锁更多高级功能</p>
       <button class="upgrade-btn" @click="goToPricing">立即充值</button>
 
       <!-- 存储空间信息 -->
@@ -55,13 +57,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
+import { useAppStore } from '../../stores/app'
 import { userData } from '../../data/userData'
+import { getPointsApi } from '../../api/profile'
 
 const router = useRouter()
 const route = useRoute()
+const appStore = useAppStore()
 const userStore = useUserStore()
 
 const allNavItems = [
@@ -84,6 +89,22 @@ const storageUsed = computed(() => `${userData.user.storage.used}${userData.user
 const storageTotal = computed(() => `${userData.user.storage.total}${userData.user.storage.unit}`)
 const storagePercentage = computed(() => (userData.user.storage.used / userData.user.storage.total) * 100)
 
+// 积分相关
+const userPoints = ref(null)
+const remainingPoints = computed(() => {
+  if (!userPoints.value) return '--'
+  return userPoints.value.total_points - userPoints.value.used_points
+})
+
+async function fetchUserPoints() {
+  try {
+    const res = await getPointsApi()
+    userPoints.value = res.data
+  } catch (e) {
+    console.warn('获取积分信息失败:', e)
+  }
+}
+
 function isActive(path) {
   if (path === '/') {
     return route.path === '/'
@@ -99,13 +120,14 @@ onMounted(() => {
   if (window.lucide) {
     lucide.createIcons()
   }
+  fetchUserPoints()
 })
 </script>
 
 <style scoped>
 .sidebar {
   width: 210px;
-  min-width: 210px;
+  min-width: 180px;
   flex-shrink: 0;
   height: 100vh;
   background: rgba(255, 255, 255, 0.85);
@@ -116,13 +138,14 @@ onMounted(() => {
   padding: 16px 12px;
   position: relative;
   z-index: 50;
+  overflow: hidden;
 }
 
 .sidebar-logo {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
   padding: 0 4px;
 }
 
@@ -136,6 +159,14 @@ onMounted(() => {
   justify-content: center;
   color: white;
   box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 4px 12px rgba(99, 102, 241, 0.35);
+  overflow: hidden;
+}
+
+.logo-custom-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
 }
 
 .logo-text h1 {
@@ -162,7 +193,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 7px 12px;
   border-radius: 8px;
   color: #6b7280;
   text-decoration: none;
@@ -212,35 +243,35 @@ onMounted(() => {
 .member-card {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   border-radius: 12px;
-  padding: 16px;
-  margin-top: 16px;
+  padding: 12px;
+  margin-top: auto;
   box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
 }
 
-.member-header {
+.points-display {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
-.crown-icon {
-  width: 18px;
-  height: 18px;
-  color: #f59e0b;
+.points-icon {
+  width: 16px;
+  height: 16px;
+  color: #d97706;
 }
 
-.member-title {
-  font-size: 14px;
-  font-weight: 600;
+.points-label {
+  font-size: 12px;
   color: #92400e;
+  font-weight: 500;
 }
 
-.member-desc {
-  font-size: 11.5px;
-  color: #b45309;
-  margin-bottom: 12px;
-  line-height: 1.5;
+.points-value {
+  font-size: 15px;
+  color: #d97706;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .upgrade-btn {
@@ -263,8 +294,8 @@ onMounted(() => {
 }
 
 .storage-info {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid rgba(180, 83, 9, 0.15);
 }
 
